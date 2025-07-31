@@ -98,10 +98,6 @@ local function createLevel(levelData)
 
         ghost:draw()
         player:draw()
-
-        love.graphics.print("Player Grid X: " .. player.gridX, 10, 10)
-        love.graphics.print("Player Grid Y: " .. player.gridY, 10, 30)
-        love.graphics.print("Press 'space' to die and start a new run.", 10, 50)
     end
 
     return level

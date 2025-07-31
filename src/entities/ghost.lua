@@ -8,6 +8,7 @@ local ghost = {
     moveDuration = 0.2,
 
     spriteSheet = nil,
+    tombstoneImage = nil, 
     width = 32, height = 32,
     drawScale = 2,
     rotation = 0,
@@ -19,7 +20,8 @@ local ghost = {
     actions = nil,
     actionIndex = 1,
     tileSize = 32,
-    active = false, 
+    active = false,
+    isFinished = false,
 
     animations = {
         idle = {
@@ -61,6 +63,9 @@ function ghost:load()
     if not self.spriteSheet then
         self.spriteSheet = love.graphics.newImage('assets/player_spritesheet.png')
     end
+    if not self.tombstoneImage then
+        self.tombstoneImage = love.graphics.newImage('assets/tombstone.png')
+    end
 end
 
 function ghost:reset(initialGridX, initialGridY, tileSize, actionList)
@@ -68,7 +73,7 @@ function ghost:reset(initialGridX, initialGridY, tileSize, actionList)
     self.gridY = initialGridY
     self.targetGridX = initialGridX
     self.targetGridY = initialGridY
-    self.tileSize = tileSize -- Store tileSize for movement calculations
+    self.tileSize = tileSize
     self.x = (self.gridX - 1) * self.tileSize + (self.tileSize / 2)
     self.y = (self.gridY - 1) * self.tileSize + (self.tileSize / 2)
     self.rotation = 0
@@ -77,6 +82,7 @@ function ghost:reset(initialGridX, initialGridY, tileSize, actionList)
     self.currentFrame = 1
     self.moving = false
     self.moveTimer = 0
+    self.isFinished = false
 
     if actionList and #actionList > 0 then
         self.actions = actionList
@@ -89,7 +95,7 @@ function ghost:reset(initialGridX, initialGridY, tileSize, actionList)
 end
 
 function ghost:update(dt, gameTimer)
-    if not self.active or not self.actions then
+    if not self.active or self.isFinished then
         return
     end
 
@@ -101,13 +107,18 @@ function ghost:update(dt, gameTimer)
             self.moving = true
             self.moveTimer = 0
 
-            -- Set rotation based on direction
             if self.targetGridX > self.gridX then self.rotation = math.rad(0)
-            elseif self.targetGridX < self.gridX then self.rotation = math.rad(0) -- Should be flipped for left, but keeping your logic
+            elseif self.targetGridX < self.gridX then self.rotation = math.rad(0)
             elseif self.targetGridY > self.gridY then self.rotation = math.rad(90)
             elseif self.targetGridY < self.gridY then self.rotation = math.rad(-90) end
         end
         self.actionIndex = self.actionIndex + 1
+    end
+
+    if not self.moving and not self.actions[self.actionIndex] then
+        self.isFinished = true
+        self.rotation = 0 
+        return
     end
 
     local newAnimation = self.currentAnimation
@@ -118,7 +129,6 @@ function ghost:update(dt, gameTimer)
         if moveProgress >= 1 then
             self.gridX = self.targetGridX
             self.gridY = self.targetGridY
-            -- FIXED: Use self.tileSize for calculations
             self.x = (self.gridX - 1) * self.tileSize + (self.tileSize / 2)
             self.y = (self.gridY - 1) * self.tileSize + (self.tileSize / 2)
             self.moving = false
@@ -142,18 +152,15 @@ function ghost:update(dt, gameTimer)
         self.animationTimer = 0
     end
 
-    self.animationTimer = self.animationTimer + dt
-    local currentAnimData = self.animations[self.currentAnimation]
-
-    if currentAnimData then
-        local numFrames = #currentAnimData.frames
-        local frameDuration = currentAnimData.frameDuration
-
-        if self.animationTimer >= frameDuration then
-            self.currentFrame = self.currentFrame + 1
-            self.animationTimer = self.animationTimer - frameDuration
-            if self.currentFrame > numFrames then
-                self.currentFrame = 1
+    if not self.isFinished then
+        self.animationTimer = self.animationTimer + dt
+        local currentAnimData = self.animations[self.currentAnimation]
+        if currentAnimData then
+            local numFrames = #currentAnimData.frames
+            local frameDuration = currentAnimData.frameDuration
+            if self.animationTimer >= frameDuration then
+                self.currentFrame = (self.currentFrame % numFrames) + 1
+                self.animationTimer = self.animationTimer - frameDuration
             end
         end
     end
@@ -164,32 +171,40 @@ function ghost:draw()
         return
     end
 
-    love.graphics.setColor(1, 1, 1, 0.5)
-
-    local currentAnimData = self.animations[self.currentAnimation]
-    if not currentAnimData or not self.spriteSheet then
-        love.graphics.setColor(1, 1, 1, 1) 
-        return
+    if self.isFinished then
+        love.graphics.setColor(1, 1, 1, 0.9)
+        if self.tombstoneImage then
+            love.graphics.draw(
+                self.tombstoneImage,
+                self.x,
+                self.y,
+                self.rotation, -- Will be 0
+                self.drawScale,
+                self.drawScale,
+                self.tombstoneImage:getWidth() / 2, 
+                self.tombstoneImage:getHeight() / 2
+            )
+        end
+    else
+        love.graphics.setColor(1, 1, 1, 0.5)
+        local currentAnimData = self.animations[self.currentAnimation]
+        if currentAnimData and self.spriteSheet then
+            local frameInfo = currentAnimData.frames[self.currentFrame]
+            if frameInfo then
+                currentQuad = love.graphics.newQuad(
+                    frameInfo.x, frameInfo.y,
+                    frameInfo.width, frameInfo.height,
+                    self.spriteSheet:getWidth(), self.spriteSheet:getHeight()
+                )
+                love.graphics.draw(
+                    self.spriteSheet, currentQuad,
+                    self.x, self.y,
+                    self.rotation, self.drawScale, self.drawScale,
+                    self.width / 2, self.height / 2
+                )
+            end
+        end
     end
-
-    local frameInfo = currentAnimData.frames[self.currentFrame]
-    if not frameInfo then
-        love.graphics.setColor(1, 1, 1, 1) 
-        return
-    end
-
-    currentQuad = love.graphics.newQuad(
-        frameInfo.x, frameInfo.y,
-        frameInfo.width, frameInfo.height,
-        self.spriteSheet:getWidth(), self.spriteSheet:getHeight()
-    )
-
-    love.graphics.draw(
-        self.spriteSheet, currentQuad,
-        self.x, self.y,
-        self.rotation, self.drawScale, self.drawScale,
-        self.width / 2, self.height / 2
-    )
 
     love.graphics.setColor(1, 1, 1, 1)
 end
