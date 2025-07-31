@@ -62,7 +62,7 @@ scenes = {
 }
 
 CONFIG = {
-  showSplash = true,
+  showSplash = false,
   joystick = love.joystick.getJoysticks()[1],
   deadzone = .33,
   graphics = {

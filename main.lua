@@ -1,6 +1,7 @@
 local loadTimeStart = love.timer.getTime()
 
 require 'globals'
+local levels = require 'src.scenes.levels'
 
 function love.load()
   if CONFIG.window.icon ~= nil then
@@ -14,7 +15,7 @@ function love.load()
   end
 
   if not CONFIG.showSplash then
-    roomy:enter(scenes.mainMenu)
+    roomy:enter(levels.level1)
   end
 
   if DEBUG then
