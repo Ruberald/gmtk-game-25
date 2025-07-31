@@ -76,7 +76,7 @@ function player:reset(initialGridX, initialGridY, tileSize)
     self.isDead = false
 end
 
-function player:GetIsDead()
+function player:getIsDead()
     return self.isDead
 end
 
