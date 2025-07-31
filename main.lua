@@ -1,7 +1,10 @@
 local loadTimeStart = love.timer.getTime()
 
 require 'globals'
+local player = require 'src.entities.player'
 local levels = require 'src.scenes.levels'
+
+local currentLevel = levels.level1
 
 function love.load()
   love.window.setMode(CONFIG.window.width, CONFIG.window.height, {
@@ -20,33 +23,35 @@ function love.load()
 
   if CONFIG.showSplash then
     roomy:enter(scenes.splash)
-  end
-
-  if not CONFIG.showSplash then
-    roomy:enter(levels.level1)
+  else
+    currentLevel:load()
+    player:load()
+    player:reset(1, 1, currentLevel.tileSize)
   end
 
   if DEBUG then
     local loadTimeEnd = love.timer.getTime()
-    local loadTime = (loadTimeEnd - loadTimeStart)
-    print(("Loaded game in %.3f seconds."):format(loadTime))
+    print(("Loaded game in %.3f seconds."):format(loadTimeEnd - loadTimeStart))
   end
 end
 
--- useful for dev
+-- hot reload on code changes (dev only)
 lurker.postswap = function(fileName)
   love.event.quit("restart")
 end
 
 function love.update(dt)
   lurker.update()
+  player:update(dt, currentLevel.mapData, currentLevel.tileSize)
 end
 
 function love.draw()
   local drawTimeStart = love.timer.getTime()
-  -- call draw?
+
+  currentLevel:draw()
+  player:draw()
+
   local drawTimeEnd = love.timer.getTime()
-  local drawTime = drawTimeEnd - drawTimeStart
 
   if DEBUG then
     love.graphics.push()
@@ -61,18 +66,21 @@ function love.draw()
       vram = vram / 1024
       memoryUnit = "MB"
     end
+
     local info = {
       "FPS: " .. ("%3d"):format(love.timer.getFPS()),
-      "DRAW: " .. ("%7.3fms"):format(lume.round(drawTime * 1000, .001)),
-      "RAM: " .. string.format("%7.2f", lume.round(ram, .01)) .. memoryUnit,
-      "VRAM: " .. string.format("%6.2f", lume.round(vram, .01)) .. memoryUnit,
+      "DRAW: " .. ("%7.3fms"):format((drawTimeEnd - drawTimeStart) * 1000),
+      "RAM: " .. string.format("%7.2f", ram) .. memoryUnit,
+      "VRAM: " .. string.format("%6.2f", vram) .. memoryUnit,
       "Draw calls: " .. stats.drawcalls,
       "Images: " .. stats.images,
       "Canvases: " .. stats.canvases,
       "\tSwitches: " .. stats.canvasswitches,
       "Shader switches: " .. stats.shaderswitches,
       "Fonts: " .. stats.fonts,
-    }
+      "Player Grid X: " .. player.gridX,
+      "Player Grid Y: " .. player.gridY
+  }
 
     love.graphics.setFont(love.graphics.newFont(12))
     for i, text in ipairs(info) do
@@ -82,7 +90,6 @@ function love.draw()
       love.graphics.setColor(CONFIG.debug.stats.foreground)
       love.graphics.print(text, x, y + (i - 1) * dy)
     end
-
     love.graphics.pop()
   end
 end
