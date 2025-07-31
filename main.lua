@@ -4,6 +4,14 @@ require 'globals'
 local levels = require 'src.scenes.levels'
 
 function love.load()
+  love.window.setMode(CONFIG.window.width, CONFIG.window.height, {
+    fullscreen = CONFIG.window.fullscreen,
+    resizable = CONFIG.window.resizable,
+    vsync = CONFIG.window.vsync,
+  })
+
+  love.window.setTitle(CONFIG.window.title)
+
   if CONFIG.window.icon ~= nil then
     love.window.setIcon(love.image.newImageData(CONFIG.window.icon))
   end

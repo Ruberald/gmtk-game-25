@@ -81,7 +81,13 @@ CONFIG = {
 
   window = {
     -- icon = 'assets/images/icon.png'
-    icon = nil
+    icon = nil,
+    width = 1280, 
+    height = 720, 
+    fullscreen = false, 
+    resizable = true,  
+    vsync = true,      
+    title = "OneLessLoop"
   },
 
   debug = {
