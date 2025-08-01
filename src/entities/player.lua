@@ -9,7 +9,7 @@ local player = {
 
     spriteSheet = nil,
     width = 32, height = 32,
-    drawScale = 2,
+    drawScale = 1,
     rotation = 0,
 
     currentAnimation = 'idle',
@@ -91,7 +91,7 @@ function player:reset(initialGridX, initialGridY, tileSize)
     self.moving = false
     self.moveTimer = 0
     self.isDead = false
-    self.drawScale = tileSize / self.width
+    -- self.drawScale = tileSize / self.width
 
     if self.spawnEffect then
         self.spawnEffect:setPosition(self.x, self.y)
@@ -136,19 +136,19 @@ function player:update(dt, collisionMap, tileSize, gameTimer, actionsTable)
 
         if love.keyboard.isDown('up') or love.keyboard.isDown('w') then
             targetY = self.gridY - 1
-            self.rotation = math.rad(-90)
+            -- self.rotation = math.rad(-90)
             movedInput = true
         elseif love.keyboard.isDown('down') or love.keyboard.isDown('s') then
             targetY = self.gridY + 1
-            self.rotation = math.rad(90)
+            -- self.rotation = math.rad(90)
             movedInput = true
         elseif love.keyboard.isDown('left') or love.keyboard.isDown('a') then
             targetX = self.gridX - 1
-            self.rotation = math.rad(0)
+            -- self.rotation = math.rad(0)
             movedInput = true
         elseif love.keyboard.isDown('right') or love.keyboard.isDown('d') then
             targetX = self.gridX + 1
-            self.rotation = math.rad(0)
+            -- self.rotation = math.rad(0)
             movedInput = true
         elseif love.keyboard.isDown('space') then
             self.isDead = true
@@ -220,6 +220,8 @@ function player:draw()
         self.spriteSheet:getHeight()
     )
 
+    print("drawScale:", self.drawScale)
+
     love.graphics.draw(
         self.spriteSheet,
         currentQuad,
@@ -229,7 +231,7 @@ function player:draw()
         self.drawScale,
         self.drawScale,
         self.width / 2,
-        self.height / 2
+        self.height / 2 + 8
     )
 
     if self.spawnEffect then

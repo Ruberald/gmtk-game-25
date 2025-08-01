@@ -10,7 +10,7 @@ local ghost = {
     spriteSheet = nil,
     tombstoneImage = nil, 
     width = 32, height = 32,
-    drawScale = 2,
+    drawScale = 1,
     rotation = 0,
 
     currentAnimation = 'idle',
@@ -83,7 +83,7 @@ function ghost:reset(initialGridX, initialGridY, tileSize, actionList)
     self.moving = false
     self.moveTimer = 0
     self.isFinished = false
-    self.drawScale = tileSize / self.width
+    -- self.drawScale = tileSize / self.width
 
     if actionList and #actionList > 0 then
         self.actions = actionList
@@ -108,10 +108,10 @@ function ghost:update(dt, gameTimer)
             self.moving = true
             self.moveTimer = 0
 
-            if self.targetGridX > self.gridX then self.rotation = math.rad(0)
-            elseif self.targetGridX < self.gridX then self.rotation = math.rad(0)
-            elseif self.targetGridY > self.gridY then self.rotation = math.rad(90)
-            elseif self.targetGridY < self.gridY then self.rotation = math.rad(-90) end
+            -- if self.targetGridX > self.gridX then self.rotation = math.rad(0)
+            -- elseif self.targetGridX < self.gridX then self.rotation = math.rad(0)
+            -- elseif self.targetGridY > self.gridY then self.rotation = math.rad(90)
+            -- elseif self.targetGridY < self.gridY then self.rotation = math.rad(-90) end
         end
         self.actionIndex = self.actionIndex + 1
     end
@@ -182,8 +182,8 @@ function ghost:draw()
                 self.rotation, -- Will be 0
                 self.drawScale,
                 self.drawScale,
-                self.tombstoneImage:getWidth() / 2, 
-                self.tombstoneImage:getHeight() / 2
+                self.tombstoneImage:getWidth() / 2,
+                self.tombstoneImage:getHeight() / 2 
             )
         end
     else
@@ -201,7 +201,7 @@ function ghost:draw()
                     self.spriteSheet, currentQuad,
                     self.x, self.y,
                     self.rotation, self.drawScale, self.drawScale,
-                    self.width / 2, self.height / 2
+                    self.width / 2, self.height / 2 + 8
                 )
             end
         end
