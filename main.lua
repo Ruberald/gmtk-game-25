@@ -120,3 +120,79 @@ end
 function love.threaderror(thread, errorMessage)
     print("Thread error!\n" .. errorMessage)
 end
+
+-- Sprite Coordinate Finder
+-- A simple tool to find the exact pixel coordinates on a spritesheet.
+
+-- require 'globals'
+
+-- function love.load()
+--     -- ===================================================================
+--     -- INSTRUCTIONS: Change this path to the spritesheet you want to inspect.
+--     -- Make sure the path is correct relative to your project's root.
+--     -- ===================================================================
+--     local imagePath = 'assets/player/idle.png'
+
+--     love.window.setMode(CONFIG.window.width, CONFIG.window.height, {
+--         fullscreen = CONFIG.window.fullscreen,
+--         resizable = CONFIG.window.resizable,
+--         vsync = CONFIG.window.vsync,
+--     })
+
+--     -- Check if the file exists before trying to load it
+--     local success, message = pcall(function()
+--         image = love.graphics.newImage(imagePath)
+--     end)
+
+--     if not success then
+--         image = nil
+--         print("ERROR: Could not load image at: '" .. imagePath .. "'")
+--         print("LÖVE2D Error: " .. tostring(message))
+--         print("Please make sure the path is correct and the file is in your project folder.")
+--     end
+
+--     -- Set up font and window title
+--     font = love.graphics.newFont(14)
+--     love.window.setTitle("Sprite Coordinate Finder | Click to print coordinates")
+-- end
+
+-- function love.update(dt)
+--     -- No update logic is needed for this tool.
+-- end
+
+-- function love.draw()
+--     love.graphics.setBackgroundColor(0.2, 0.2, 0.25) -- Dark background for better contrast
+
+--     if image then
+--         -- Draw the spritesheet at the top-left corner
+--         love.graphics.draw(image, 0, 0)
+--     else
+--         -- Display an error message if the image could not be loaded
+--         love.graphics.setColor(1, 0.2, 0.2)
+--         love.graphics.print("Could not load image. Check the console for the correct path.", 10, 10)
+--         love.graphics.setColor(1, 1, 1)
+--         return
+--     end
+
+--     -- Get the current mouse position
+--     local mx, my = love.mouse.getPosition()
+
+--     -- Draw helpful text on the screen
+--     love.graphics.setFont(font)
+--     love.graphics.setColor(1, 1, 1)
+--     love.graphics.print("Move mouse to find coordinates.", 10, love.graphics.getHeight() - 60)
+--     love.graphics.print("Click to print coordinates to the console.", 10, love.graphics.getHeight() - 40)
+
+--     -- Draw the current mouse coordinates next to the cursor for real-time feedback
+--     love.graphics.setColor(1, 1, 0) -- Bright yellow for high visibility
+--     love.graphics.printf("(" .. mx .. ", " .. my .. ")", mx + 20, my, love.graphics.getWidth())
+--     love.graphics.setColor(1, 1, 1) -- Reset color
+-- end
+
+-- function love.mousepressed(x, y, button, istouch, presses)
+--     -- When the left mouse button is clicked, print the coordinates to the console.
+--     if button == 1 then
+--         print("Clicked at: x = " .. x .. ", y = " .. y)
+--     end
+-- end
+

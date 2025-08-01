@@ -7,64 +7,63 @@ local ghost = {
     moveTimer = 0,
     moveDuration = 0.2,
 
-    spriteSheet = nil,
-    tombstoneImage = nil, 
+    idleImage = nil,
+    walkImage = nil,
+    quads = { idle = {}, run = {} },
     width = 32, height = 32,
-    drawScale = 2,
-    rotation = 0,
+    drawScale = 1,
+    flipH = false,
+    facingRow = 2,  -- 1=horizontal, 2=down, 3=up
 
     currentAnimation = 'idle',
     animationTimer = 0,
     currentFrame = 1,
+    frameDurationIdle = 0.15,
+    frameDurationRun = 0.05,
 
     actions = nil,
     actionIndex = 1,
     tileSize = 32,
     active = false,
     isFinished = false,
-
-    animations = {
-        idle = {
-            frames = {
-                {x = 0, y = 0, width = 32, height = 32},
-                {x = 32, y = 0, width = 32, height = 32},
-                {x = 64, y = 0, width = 32, height = 32},
-                {x = 96, y = 0, width = 32, height = 32}
-            },
-            frameDuration = 0.15
-        },
-        run = {
-            frames = {
-                {x = 0, y = 64, width = 32, height = 32},
-                {x = 32, y = 64, width = 32, height = 32},
-                {x = 64, y = 64, width = 32, height = 32},
-                {x = 96, y = 64, width = 32, height = 32},
-                {x = 128, y = 64, width = 32, height = 32},
-                {x = 160, y = 64, width = 32, height = 32},
-                {x = 192, y = 64, width = 32, height = 32},
-                {x = 224, y = 64, width = 32, height = 32},
-                {x = 0, y = 96, width = 32, height = 32},
-                {x = 32, y = 96, width = 32, height = 32},
-                {x = 64, y = 96, width = 32, height = 32},
-                {x = 96, y = 96, width = 32, height = 32},
-                {x = 128, y = 96, width = 32, height = 32},
-                {x = 160, y = 96, width = 32, height = 32},
-                {x = 192, y = 96, width = 32, height = 32},
-                {x = 224, y = 96, width = 32, height = 32}
-            },
-            frameDuration = 0.05
-        }
-    }
 }
+
 
 local currentQuad
 
+local FRAME_W, FRAME_H = 16, 16
+local ROWS = 3
+local IDLE_COLS, WALK_COLS = 4, 8
+local START_X, START_Y = 32, 32
+local STRIDE_X, STRIDE_Y = 80, 80
+
 function ghost:load()
-    if not self.spriteSheet then
-        self.spriteSheet = love.graphics.newImage('assets/player_spritesheet.png')
+    if not self.idleImage then
+        self.idleImage = love.graphics.newImage('assets/ghost/idle.png')
     end
-    if not self.tombstoneImage then
-        self.tombstoneImage = love.graphics.newImage('assets/tombstone.png')
+    if not self.walkImage then
+        self.walkImage = love.graphics.newImage('assets/ghost/walk.png')
+    end
+
+    if #self.quads.idle == 0 then
+        for row = 1, ROWS do
+            self.quads.idle[row] = {}
+            for col = 1, IDLE_COLS do
+                local x = START_X + (col - 1) * STRIDE_X
+                local y = START_Y + (row - 1) * STRIDE_Y
+                self.quads.idle[row][col] = love.graphics.newQuad(x, y, FRAME_W, FRAME_H, self.idleImage:getWidth(), self.idleImage:getHeight())
+            end
+        end
+    end
+    if #self.quads.run == 0 then
+        for row = 1, ROWS do
+            self.quads.run[row] = {}
+            for col = 1, WALK_COLS do
+                local x = START_X + (col - 1) * STRIDE_X
+                local y = START_Y + (row - 1) * STRIDE_Y
+                self.quads.run[row][col] = love.graphics.newQuad(x, y, FRAME_W, FRAME_H, self.walkImage:getWidth(), self.walkImage:getHeight())
+            end
+        end
     end
 end
 
@@ -77,13 +76,14 @@ function ghost:reset(initialGridX, initialGridY, tileSize, actionList)
     self.x = (self.gridX - 1) * self.tileSize + (self.tileSize / 2)
     self.y = (self.gridY - 1) * self.tileSize + (self.tileSize / 2)
     self.rotation = 0
+    self.flipH = false
     self.currentAnimation = 'idle'
     self.animationTimer = 0
     self.currentFrame = 1
     self.moving = false
     self.moveTimer = 0
     self.isFinished = false
-    self.drawScale = tileSize / self.width
+    self.facingRow = 2
 
     if actionList and #actionList > 0 then
         self.actions = actionList
@@ -96,9 +96,7 @@ function ghost:reset(initialGridX, initialGridY, tileSize, actionList)
 end
 
 function ghost:update(dt, gameTimer)
-    if not self.active or self.isFinished then
-        return
-    end
+    if not self.active then return end
 
     local nextAction = self.actions[self.actionIndex]
     if nextAction and gameTimer >= nextAction.time and not self.moving then
@@ -108,33 +106,32 @@ function ghost:update(dt, gameTimer)
             self.moving = true
             self.moveTimer = 0
 
-            if self.targetGridX > self.gridX then self.rotation = math.rad(0)
-            elseif self.targetGridX < self.gridX then self.rotation = math.rad(0)
-            elseif self.targetGridY > self.gridY then self.rotation = math.rad(90)
-            elseif self.targetGridY < self.gridY then self.rotation = math.rad(-90) end
+            if self.targetGridX > self.gridX then         -- Right
+                self.facingRow = 1; self.flipH = false
+            elseif self.targetGridX < self.gridX then     -- Left
+                self.facingRow = 1; self.flipH = true
+            elseif self.targetGridY > self.gridY then     -- Down
+                self.facingRow = 2; self.flipH = false
+            elseif self.targetGridY < self.gridY then     -- Up
+                self.facingRow = 3; self.flipH = false
+            end
         end
         self.actionIndex = self.actionIndex + 1
     end
 
     if not self.moving and not self.actions[self.actionIndex] then
         self.isFinished = true
-        self.rotation = 0 
-        return
     end
 
-    local newAnimation = self.currentAnimation
     if self.moving then
         self.moveTimer = self.moveTimer + dt
         local moveProgress = self.moveTimer / self.moveDuration
-        newAnimation = 'run'
         if moveProgress >= 1 then
-            self.gridX = self.targetGridX
-            self.gridY = self.targetGridY
+            self.gridX, self.gridY = self.targetGridX, self.targetGridY
             self.x = (self.gridX - 1) * self.tileSize + (self.tileSize / 2)
             self.y = (self.gridY - 1) * self.tileSize + (self.tileSize / 2)
             self.moving = false
             self.moveTimer = 0
-            newAnimation = 'idle'
         else
             local startX = (self.gridX - 1) * self.tileSize + (self.tileSize / 2)
             local startY = (self.gridY - 1) * self.tileSize + (self.tileSize / 2)
@@ -143,70 +140,37 @@ function ghost:update(dt, gameTimer)
             self.x = startX + (endX - startX) * moveProgress
             self.y = startY + (endY - startY) * moveProgress
         end
-    else
-        newAnimation = 'idle'
     end
 
-    if self.currentAnimation ~= newAnimation then
-        self.currentAnimation = newAnimation
-        self.currentFrame = 1
-        self.animationTimer = 0
-    end
-
-    if not self.isFinished then
-        self.animationTimer = self.animationTimer + dt
-        local currentAnimData = self.animations[self.currentAnimation]
-        if currentAnimData then
-            local numFrames = #currentAnimData.frames
-            local frameDuration = currentAnimData.frameDuration
-            if self.animationTimer >= frameDuration then
-                self.currentFrame = (self.currentFrame % numFrames) + 1
-                self.animationTimer = self.animationTimer - frameDuration
-            end
-        end
+    local cols = (self.currentAnimation == 'idle') and IDLE_COLS or WALK_COLS
+    local frameTime = (self.currentAnimation == 'idle') and self.frameDurationIdle or self.frameDurationRun
+    self.animationTimer = self.animationTimer + dt
+    if self.animationTimer >= frameTime then
+        self.currentFrame = (self.currentFrame % cols) + 1
+        self.animationTimer = self.animationTimer - frameTime
     end
 end
 
 function ghost:draw()
-    if not self.active then
-        return
-    end
+    if not self.active then return end
+
+    local row = self.facingRow
+    local scaleX = self.flipH and -self.drawScale or self.drawScale
+    local rot = 0
 
     if self.isFinished then
-        love.graphics.setColor(1, 1, 1, 0.9)
-        if self.tombstoneImage then
-            love.graphics.draw(
-                self.tombstoneImage,
-                self.x,
-                self.y,
-                self.rotation, -- Will be 0
-                self.drawScale,
-                self.drawScale,
-                self.tombstoneImage:getWidth() / 2, 
-                self.tombstoneImage:getHeight() / 2
-            )
-        end
-    else
-        love.graphics.setColor(1, 1, 1, 0.5)
-        local currentAnimData = self.animations[self.currentAnimation]
-        if currentAnimData and self.spriteSheet then
-            local frameInfo = currentAnimData.frames[self.currentFrame]
-            if frameInfo then
-                currentQuad = love.graphics.newQuad(
-                    frameInfo.x, frameInfo.y,
-                    frameInfo.width, frameInfo.height,
-                    self.spriteSheet:getWidth(), self.spriteSheet:getHeight()
-                )
-                love.graphics.draw(
-                    self.spriteSheet, currentQuad,
-                    self.x, self.y,
-                    self.rotation, self.drawScale, self.drawScale,
-                    self.width / 2, self.height / 2
-                )
-            end
-        end
+        self.currentAnimation = 'idle'
     end
 
+    local mapType = (self.currentAnimation == 'idle') and 'idle' or 'run'
+    local img = (mapType == 'idle') and self.idleImage or self.walkImage
+    currentQuad = self.quads[mapType][row][self.currentFrame]
+
+    love.graphics.setColor(1,1,1,1)
+    love.graphics.draw(img, currentQuad,
+        self.x, self.y,
+        rot, scaleX, self.drawScale,
+        FRAME_W/2, FRAME_H/2)
     love.graphics.setColor(1, 1, 1, 1)
 end
 

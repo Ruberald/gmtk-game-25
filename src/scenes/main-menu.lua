@@ -2,6 +2,7 @@ local mainMenu = {}
 
 local button = require 'src.ui.components.button'
 local label  = require 'src.ui.components.label'
+local Game   = require 'src.Game'
 
 -- `previous` - the previously active scene, or `false` if there was no previously active scene
 -- `...` - additional arguments passed to `manager.enter` or `manager.push`
@@ -14,11 +15,9 @@ function mainMenu:enter(previous, ...)
       + button {
         text = 'New game',
         width = 200,
-        onHover = function()
-          print 'mouse entered'
-          return function()
-            print('mouse exited')
-          end
+        onClick = function()
+          Game:load()
+          roomy:pop()
         end
       }
       + button { text = 'Settings', width = 200, onClick = function()
@@ -34,21 +33,6 @@ function mainMenu:enter(previous, ...)
           roomy:pop()
          end }
       + button { text = 'Quit', width = 200, onClick = function() love.event.quit() end }
-      + button {
-        text = 'Clicked: 0',
-        width = 200,
-        onClick = function(self)
-          clicks = clicks + 1
-          self.text = 'Clicked: ' .. clicks
-        end
-      }
-      + button {
-        text = 'Click to remove',
-        onClick = function(self)
-          self.parent = self.parent - self
-          love.mouse.setCursor()
-        end
-      }
 
   menu:updatePosition(
     love.graphics.getWidth() * 0.5 - menu.width * 0.5,

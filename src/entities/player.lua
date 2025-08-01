@@ -7,54 +7,33 @@ local player = {
     moveTimer = 0,
     moveDuration = 0.2,
 
-    spriteSheet = nil,
-    width = 32, height = 32,
-    drawScale = 2,
-    rotation = 0,
+    idleImage = nil,
+    walkImage = nil,
+    quads = { idle = {}, run = {} },
+    width = 16, height = 32,
+    drawScale = 1,
+    flipH = false,
+    facingRow = 6, 
 
     currentAnimation = 'idle',
     animationTimer = 0,
     currentFrame = 1,
+    frameDurationIdle = 0.15,
+    frameDurationRun = 0.05,
 
     isDead = false,
 
     spawnEffect = nil,
 
-    animations = {
-        idle = {
-            frames = {
-                {x = 0, y = 0, width = 32, height = 32},
-                {x = 32, y = 0, width = 32, height = 32},
-                {x = 64, y = 0, width = 32, height = 32},
-                {x = 96, y = 0, width = 32, height = 32}
-            },
-            frameDuration = 0.15
-        },
-        run = {
-            frames = {
-                {x = 0, y = 64, width = 32, height = 32},
-                {x = 32, y = 64, width = 32, height = 32},
-                {x = 64, y = 64, width = 32, height = 32},
-                {x = 96, y = 64, width = 32, height = 32},
-                {x = 128, y = 64, width = 32, height = 32},
-                {x = 160, y = 64, width = 32, height = 32},
-                {x = 192, y = 64, width = 32, height = 32},
-                {x = 224, y = 64, width = 32, height = 32},
-                {x = 0, y = 96, width = 32, height = 32},
-                {x = 32, y = 96, width = 32, height = 32},
-                {x = 64, y = 96, width = 32, height = 32},
-                {x = 96, y = 96, width = 32, height = 32},
-                {x = 128, y = 96, width = 32, height = 32},
-                {x = 160, y = 96, width = 32, height = 32},
-                {x = 192, y = 96, width = 32, height = 32},
-                {x = 224, y = 96, width = 32, height = 32}
-            },
-            frameDuration = 0.05
-        }
-    }
 }
 
 local currentQuad
+
+local FRAME_W, FRAME_H = 16, 32
+local ROWS = 6
+local COLS = 8
+local START_X, START_Y = 16, 16
+local STRIDE_X, STRIDE_Y = 48, 64
 
 function player:load()
     if not self.spriteSheet then
@@ -75,6 +54,33 @@ function player:load()
             1, 1, 1, 0
         )
     end
+
+   if not self.idleImage then
+       self.idleImage = love.graphics.newImage('assets/player/idle.png')
+   end
+   if not self.walkImage then
+       self.walkImage = love.graphics.newImage('assets/player/walk.png')
+   end
+   if #self.quads.idle == 0 then
+       for row = 1, ROWS do
+           self.quads.idle[row] = {}
+           for col = 1, COLS do
+               local x = START_X + (col - 1) * STRIDE_X
+               local y = START_Y + (row - 1) * STRIDE_Y
+               self.quads.idle[row][col] = love.graphics.newQuad(x, y, FRAME_W, FRAME_H, self.idleImage:getWidth(), self.idleImage:getHeight())
+           end
+       end
+   end
+   if #self.quads.run == 0 then
+       for row = 1, ROWS do
+           self.quads.run[row] = {}
+           for col = 1, COLS do
+               local x = START_X + (col - 1) * STRIDE_X
+               local y = START_Y + (row - 1) * STRIDE_Y
+               self.quads.run[row][col] = love.graphics.newQuad(x, y, FRAME_W, FRAME_H, self.walkImage:getWidth(), self.walkImage:getHeight())
+           end
+       end
+   end
 end
 
 function player:reset(initialGridX, initialGridY, tileSize)
@@ -91,7 +97,8 @@ function player:reset(initialGridX, initialGridY, tileSize)
     self.moving = false
     self.moveTimer = 0
     self.isDead = false
-    self.drawScale = tileSize / self.width
+    self.flipH = false
+    self.facingRow = 6
 
     if self.spawnEffect then
         self.spawnEffect:setPosition(self.x, self.y)
@@ -130,25 +137,24 @@ function player:update(dt, collisionMap, tileSize, gameTimer, actionsTable)
         end
     else
         newAnimation = 'idle'
-        local targetX = self.gridX
-        local targetY = self.gridY
+        local targetX, targetY = self.gridX, self.gridY
         local movedInput = false
 
-        if love.keyboard.isDown('up') or love.keyboard.isDown('w') then
-            targetY = self.gridY - 1
-            self.rotation = math.rad(-90)
-            movedInput = true
-        elseif love.keyboard.isDown('down') or love.keyboard.isDown('s') then
+        if love.keyboard.isDown('down','s') then
             targetY = self.gridY + 1
-            self.rotation = math.rad(90)
+            self.facingRow = 1; self.flipH = false
             movedInput = true
-        elseif love.keyboard.isDown('left') or love.keyboard.isDown('a') then
+        elseif love.keyboard.isDown('up','w') then
+            targetY = self.gridY - 1
+            self.facingRow = 4; self.flipH = false
+            movedInput = true
+        elseif love.keyboard.isDown('left','a') then
             targetX = self.gridX - 1
-            self.rotation = math.rad(0)
+            self.facingRow = 6; self.flipH = true
             movedInput = true
-        elseif love.keyboard.isDown('right') or love.keyboard.isDown('d') then
+        elseif love.keyboard.isDown('right','d') then
             targetX = self.gridX + 1
-            self.rotation = math.rad(0)
+            self.facingRow = 6; self.flipH = false
             movedInput = true
         elseif love.keyboard.isDown('space') then
             self.isDead = true
@@ -186,17 +192,12 @@ function player:update(dt, collisionMap, tileSize, gameTimer, actionsTable)
         self.animationTimer = 0
     end
 
+    local cols = COLS
+    local frameTime = (self.currentAnimation=='idle') and self.frameDurationIdle or self.frameDurationRun
     self.animationTimer = self.animationTimer + dt
-    local currentAnimData = self.animations[self.currentAnimation]
-
-    if currentAnimData then
-        local numFrames = #currentAnimData.frames
-        local frameDuration = currentAnimData.frameDuration
-
-        if self.animationTimer >= frameDuration then
-            self.currentFrame = (self.currentFrame % numFrames) + 1
-            self.animationTimer = self.animationTimer - frameDuration
-        end
+    if self.animationTimer >= frameTime then
+        self.currentFrame = (self.currentFrame % cols) + 1
+        self.animationTimer = self.animationTimer - frameTime
     end
 
     if self.spawnEffect then
@@ -205,32 +206,18 @@ function player:update(dt, collisionMap, tileSize, gameTimer, actionsTable)
 end
 
 function player:draw()
-    local currentAnimData = self.animations[self.currentAnimation]
-    if not currentAnimData or not self.spriteSheet then return end
 
-    local frameInfo = currentAnimData.frames[self.currentFrame]
-    if not frameInfo then return end
+    local map = (self.currentAnimation=='idle') and self.idleImage or self.walkImage
+    local quadSet = (self.currentAnimation=='idle') and self.quads.idle or self.quads.run
+    local quad = quadSet[self.facingRow][self.currentFrame]
 
-    currentQuad = love.graphics.newQuad(
-        frameInfo.x,
-        frameInfo.y,
-        frameInfo.width,
-        frameInfo.height,
-        self.spriteSheet:getWidth(),
-        self.spriteSheet:getHeight()
-    )
-
-    love.graphics.draw(
-        self.spriteSheet,
-        currentQuad,
-        self.x,
-        self.y,
-        self.rotation,
-        self.drawScale,
-        self.drawScale,
-        self.width / 2,
-        self.height / 2
-    )
+    love.graphics.setColor(1,1,1,1)
+    local sx = self.flipH and -self.drawScale or self.drawScale
+    love.graphics.draw(map, quad,
+        self.x, self.y,
+        0, sx, self.drawScale,
+        FRAME_W/2, FRAME_H/2)
+    love.graphics.setColor(1,1,1,1)
 
     if self.spawnEffect then
         love.graphics.push()
