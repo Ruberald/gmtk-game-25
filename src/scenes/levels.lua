@@ -74,6 +74,7 @@ local function createLevel(tiledMapData)
         ghost:load()
         self.lastRunActions = nil
         ghost:reset(self.playerStartX, self.playerStartY, self.tileSize, nil)
+        self.deathTimer = nil
         self:startNewRun()
     end
 
@@ -89,22 +90,20 @@ local function createLevel(tiledMapData)
         end
     end
 
-    function level:checkPlayerDeath()
-        if player:getIsDead() then
-            self:startNewRun()
-        end
-    end
-
     function level:update(dt)
         self.gameTimer = self.gameTimer + dt
         player:update(dt, self.collisionMap, self.tileSize, self.gameTimer, self.currentRunActions)
         ghost:update(dt, self.gameTimer)
+
         local tx, ty = player.gridX, player.gridY
-        if self.tileLayers[3][ty] and self.tileLayers[3][ty][tx] == 67 then
+        if not player.isDead and self.tileLayers[3][ty] and self.tileLayers[3][ty][tx] == 67 then
             print("player should die")
-            player.isDead = true
+            player:die('pitfall')
         end
-        self:checkPlayerDeath()
+
+        if player:getIsReadyToRespawn() then
+            self:startNewRun()
+        end
     end
 
     function level:draw()

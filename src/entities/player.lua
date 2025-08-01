@@ -9,19 +9,28 @@ local player = {
 
     idleImage = nil,
     walkImage = nil,
-    quads = { idle = {}, run = {} },
+    deathImage = nil,
+    dashImage = nil,
+    quads = { idle = {}, run = {}, death = {}, dash = {} },
     width = 16, height = 32,
     drawScale = 1,
+    initialDrawScale = 1,
     flipH = false,
-    facingRow = 6, 
+    facingRow = 6,
 
     currentAnimation = 'idle',
     animationTimer = 0,
     currentFrame = 1,
     frameDurationIdle = 0.15,
     frameDurationRun = 0.05,
+    frameDurationDeath = 0.1,
+    frameDurationDash = 0.05, 
 
     isDead = false,
+    isReadyToRespawn = false,
+    deathType = 'none',
+    pitfallTimer = 0,
+    pitfallDuration = 0.4,
 
     spawnEffect = nil,
 
@@ -48,7 +57,7 @@ function player:load()
         self.spawnEffect:setSpeed(50, 150)
         self.spawnEffect:setSpread(math.pi * 2)
         self.spawnEffect:setLinearAcceleration(0, 0, 0, 0)
-        self.spawnEffect:setSizes(0.05, 0.02)  
+        self.spawnEffect:setSizes(0.05, 0.02)
         self.spawnEffect:setColors(
             1, 1, 1, 1,
             1, 1, 1, 0
@@ -60,6 +69,25 @@ function player:load()
    end
    if not self.walkImage then
        self.walkImage = love.graphics.newImage('assets/player/walk.png')
+   end
+   if not self.deathImage then
+       self.deathImage = love.graphics.newImage('assets/player/death_normal.png')
+   end
+   if not self.dashImage then
+       self.dashImage = love.graphics.newImage('assets/player/dash.png')
+   end
+   if #self.quads.dash == 0 then
+       for row = 1, ROWS do
+           self.quads.dash[row] = {}
+           for col = 1, COLS do
+               local x = START_X + (col - 1) * STRIDE_X
+               local y = START_Y + (row - 1) * STRIDE_Y
+               self.quads.dash[row][col] = love.graphics.newQuad(
+                   x, y, FRAME_W, FRAME_H,
+                   self.dashImage:getWidth(), self.dashImage:getHeight()
+               )
+           end
+       end
    end
    if #self.quads.idle == 0 then
        for row = 1, ROWS do
@@ -81,6 +109,17 @@ function player:load()
            end
        end
    end
+   if #self.quads.death == 0 then
+       for row = 1, ROWS do
+           self.quads.death[row] = {}
+           for col = 1, COLS do
+               local x = START_X + (col-1)*STRIDE_X
+               local y = START_Y + (row-1)*STRIDE_Y
+               self.quads.death[row][col] = love.graphics.newQuad(x,y,FRAME_W,FRAME_H,
+                       self.deathImage:getWidth(), self.deathImage:getHeight())
+           end
+       end
+   end
 end
 
 function player:reset(initialGridX, initialGridY, tileSize)
@@ -97,26 +136,78 @@ function player:reset(initialGridX, initialGridY, tileSize)
     self.moving = false
     self.moveTimer = 0
     self.isDead = false
+    self.isReadyToRespawn = false
     self.flipH = false
     self.facingRow = 6
+    self.initialDrawScale = 1
+    self.drawScale = self.initialDrawScale
 
     if self.spawnEffect then
         self.spawnEffect:setPosition(self.x, self.y)
-        self.spawnEffect:emit(25)   
+        self.spawnEffect:emit(25)
     end
 end
 
-function player:getIsDead()
-    return self.isDead
+function player:getIsReadyToRespawn()
+    return self.isReadyToRespawn
+end
+
+function player:die(type)
+    if self.isDead then return end
+
+    self.isDead = true
+    self.deathType = type or 'normal'
+    self.isReadyToRespawn = false
+
+    if self.deathType == 'normal' then
+        self.currentAnimation = 'death'
+        self.currentFrame = 1
+        self.animationTimer = 0
+    elseif self.deathType == 'pitfall' then
+        self.pitfallTimer = 0
+        -- initialize dash animation
+        self.currentAnimation = 'dash'
+        self.currentFrame = 1
+        self.animationTimer = 0
+    end
 end
 
 function player:update(dt, collisionMap, tileSize, gameTimer, actionsTable)
-    local newAnimation = self.currentAnimation
+    if self.isDead then
+        if self.isReadyToRespawn then return end
+
+        if self.deathType == 'normal' then
+            self.animationTimer = self.animationTimer + dt
+            if self.animationTimer >= self.frameDurationDeath then
+                self.animationTimer = self.animationTimer - self.frameDurationDeath
+                self.currentFrame = self.currentFrame + 1
+                if self.currentFrame > COLS then
+                    self.currentFrame = COLS
+                    self.isReadyToRespawn = true
+                end
+            end
+        elseif self.deathType == 'pitfall' then
+            self.pitfallTimer = self.pitfallTimer + dt
+            local progress = math.min(1, self.pitfallTimer / self.pitfallDuration)
+            self.drawScale = self.initialDrawScale * (1 - progress/2)
+
+            self.animationTimer = self.animationTimer + dt
+            if self.animationTimer >= self.frameDurationDash then
+                self.animationTimer = self.animationTimer - self.frameDurationDash
+                self.currentFrame = (self.currentFrame % COLS) + 1
+            end
+
+            if progress >= 1 then
+                self.isReadyToRespawn = true
+            end
+        end
+        return
+    end
 
     if self.moving then
         self.moveTimer = self.moveTimer + dt
         local moveProgress = self.moveTimer / self.moveDuration
-        newAnimation = 'run'
+        local newAnimation = 'run'
 
         if moveProgress >= 1 then
             self.gridX = self.targetGridX
@@ -135,8 +226,15 @@ function player:update(dt, collisionMap, tileSize, gameTimer, actionsTable)
             self.x = startX + (endX - startX) * moveProgress
             self.y = startY + (endY - startY) * moveProgress
         end
-    else
-        newAnimation = 'idle'
+        
+        if self.currentAnimation ~= newAnimation then
+            self.currentAnimation = newAnimation
+            self.currentFrame = 1
+            self.animationTimer = 0
+        end
+
+    else -- Not moving
+        local newAnimation = 'idle'
         local targetX, targetY = self.gridX, self.gridY
         local movedInput = false
 
@@ -157,7 +255,8 @@ function player:update(dt, collisionMap, tileSize, gameTimer, actionsTable)
             self.facingRow = 6; self.flipH = false
             movedInput = true
         elseif love.keyboard.isDown('space') then
-            self.isDead = true
+            self:die('normal')
+            return
         end
 
         if movedInput then
@@ -184,12 +283,12 @@ function player:update(dt, collisionMap, tileSize, gameTimer, actionsTable)
                 end
             end
         end
-    end
-
-    if self.currentAnimation ~= newAnimation then
-        self.currentAnimation = newAnimation
-        self.currentFrame = 1
-        self.animationTimer = 0
+        
+        if self.currentAnimation ~= newAnimation then
+            self.currentAnimation = newAnimation
+            self.currentFrame = 1
+            self.animationTimer = 0
+        end
     end
 
     local cols = COLS
@@ -206,17 +305,29 @@ function player:update(dt, collisionMap, tileSize, gameTimer, actionsTable)
 end
 
 function player:draw()
+    local map, quadSet, quad
 
-    local map = (self.currentAnimation=='idle') and self.idleImage or self.walkImage
-    local quadSet = (self.currentAnimation=='idle') and self.quads.idle or self.quads.run
-    local quad = quadSet[self.facingRow][self.currentFrame]
+    if self.isDead and self.deathType == 'pitfall' then
+        map = self.dashImage
+        quadSet = self.quads.dash
+        quad = quadSet[self.facingRow][self.currentFrame]
+    else
+        if self.currentAnimation == 'idle' then
+            map = self.idleImage; quadSet = self.quads.idle
+        elseif self.currentAnimation == 'run' then
+            map = self.walkImage; quadSet = self.quads.run
+        else
+            map = self.deathImage; quadSet = self.quads.death
+        end
+        quad = quadSet[self.facingRow][self.currentFrame]
+    end
 
     love.graphics.setColor(1,1,1,1)
     local sx = self.flipH and -self.drawScale or self.drawScale
     love.graphics.draw(map, quad,
         self.x, self.y,
         0, sx, self.drawScale,
-        FRAME_W/2, FRAME_H/2)
+        FRAME_W/2, FRAME_H/2 + 8)
     love.graphics.setColor(1,1,1,1)
 
     if self.spawnEffect then
