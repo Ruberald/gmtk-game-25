@@ -1,12 +1,15 @@
 local level1Data = require 'src.levels.level1'
+local level2Data = require 'src.levels.level2'
+local level3Data = require 'src.levels.level3'
 local player = require 'src.entities.player'
 local ghost = require 'src.entities.ghost'
 
-local function createLevel(tiledMapData)
+local function createLevel(tiledMapData, nextLevelKey)
     local level = {
         mapWidthInTiles = tiledMapData.width,
         mapHeightInTiles = tiledMapData.height,
         tileSize = tiledMapData.tilewidth,
+        nextLevelKey = nextLevelKey,
 
         playerStartX = 7,
         playerStartY = 9,
@@ -26,8 +29,11 @@ local function createLevel(tiledMapData)
     }
 
     function level:load()
-        self.ladderIDs = {}
+        self.tileLayers = {}
+        self.collisionMap = {}
         self.tileQuads = {}
+        self.ladderIDs = {}
+
         for _, ts in ipairs(tiledMapData.tilesets) do
             local image = love.graphics.newImage('assets/' .. ts.name .. '.png')
             local imgW, imgH = image:getWidth(), image:getHeight()
@@ -74,7 +80,6 @@ local function createLevel(tiledMapData)
         ghost:load()
         self.lastRunActions = nil
         ghost:reset(self.playerStartX, self.playerStartY, self.tileSize, nil)
-        self.deathTimer = nil
         self:startNewRun()
     end
 
@@ -99,6 +104,11 @@ local function createLevel(tiledMapData)
         if not player.isDead and self.tileLayers[3][ty] and self.tileLayers[3][ty][tx] == 67 then
             print("player should die")
             player:die('pitfall')
+        end
+
+        if not player.isDead and not player.moving and self.tileLayers[3][ty] and self.tileLayers[3][ty][tx] == 34 then
+            print("Player reached the door! Loading next level: " .. tostring(self.nextLevelKey))
+            return self.nextLevelKey
         end
 
         if player:getIsReadyToRespawn() then
@@ -144,5 +154,7 @@ local function createLevel(tiledMapData)
 end
 
 return {
-    level1 = createLevel(level1Data)
+    level1 = createLevel(level1Data, 'level2'),
+    level2 = createLevel(level2Data, 'level3'),
+    level2 = createLevel(level3Data, nil),
 }

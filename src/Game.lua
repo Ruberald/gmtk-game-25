@@ -10,7 +10,12 @@ function Game:load()
 end
 
 function Game:update(dt)
-    self.currentLevel:update(dt)
+    local nextLevelKey = self.currentLevel:update(dt)
+    if nextLevelKey then
+        self.currentLevel = levels[nextLevelKey]
+        self.currentLevel:load()
+        return
+    end
 end
 
 function Game:draw()
