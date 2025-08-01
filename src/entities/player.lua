@@ -18,6 +18,8 @@ local player = {
 
     isDead = false,
 
+    spawnEffect = nil,
+
     animations = {
         idle = {
             frames = {
@@ -58,6 +60,21 @@ function player:load()
     if not self.spriteSheet then
         self.spriteSheet = love.graphics.newImage('assets/player_spritesheet.png')
     end
+
+    if not self.spawnEffect then
+        local partImg = love.graphics.newImage('assets/particle.png')
+        self.spawnEffect = love.graphics.newParticleSystem(partImg, 300)
+        self.spawnEffect:setParticleLifetime(0.1, 0.2)
+        self.spawnEffect:setEmissionRate(0)
+        self.spawnEffect:setSpeed(50, 150)
+        self.spawnEffect:setSpread(math.pi * 2)
+        self.spawnEffect:setLinearAcceleration(0, 0, 0, 0)
+        self.spawnEffect:setSizes(0.05, 0.02)  
+        self.spawnEffect:setColors(
+            1, 1, 1, 1,
+            1, 1, 1, 0
+        )
+    end
 end
 
 function player:reset(initialGridX, initialGridY, tileSize)
@@ -74,13 +91,19 @@ function player:reset(initialGridX, initialGridY, tileSize)
     self.moving = false
     self.moveTimer = 0
     self.isDead = false
+    self.drawScale = tileSize / self.width
+
+    if self.spawnEffect then
+        self.spawnEffect:setPosition(self.x, self.y)
+        self.spawnEffect:emit(25)   
+    end
 end
 
 function player:getIsDead()
     return self.isDead
 end
 
-function player:update(dt, mapData, tileSize, gameTimer, actionsTable)
+function player:update(dt, collisionMap, tileSize, gameTimer, actionsTable)
     local newAnimation = self.currentAnimation
 
     if self.moving then
@@ -132,13 +155,13 @@ function player:update(dt, mapData, tileSize, gameTimer, actionsTable)
         end
 
         if movedInput then
-            local mapWidthInTiles = #mapData[1]
-            local mapHeightInTiles = #mapData
+            local mapWidthInTiles = #collisionMap[1]
+            local mapHeightInTiles = #collisionMap
 
             if targetX >= 1 and targetX <= mapWidthInTiles and
                 targetY >= 1 and targetY <= mapHeightInTiles then
-                local tileID = mapData[targetY][targetX]
-                if tileID == 90 then
+
+                if collisionMap[targetY][targetX] == 0 then
                     self.targetGridX = targetX
                     self.targetGridY = targetY
                     self.moving = true
@@ -171,18 +194,19 @@ function player:update(dt, mapData, tileSize, gameTimer, actionsTable)
         local frameDuration = currentAnimData.frameDuration
 
         if self.animationTimer >= frameDuration then
-            self.currentFrame = self.currentFrame + 1
+            self.currentFrame = (self.currentFrame % numFrames) + 1
             self.animationTimer = self.animationTimer - frameDuration
-            if self.currentFrame > numFrames then
-                self.currentFrame = 1
-            end
         end
+    end
+
+    if self.spawnEffect then
+        self.spawnEffect:update(dt)
     end
 end
 
 function player:draw()
     local currentAnimData = self.animations[self.currentAnimation]
-    if not currentAnimData then return end
+    if not currentAnimData or not self.spriteSheet then return end
 
     local frameInfo = currentAnimData.frames[self.currentFrame]
     if not frameInfo then return end
@@ -207,6 +231,14 @@ function player:draw()
         self.width / 2,
         self.height / 2
     )
+
+    if self.spawnEffect then
+        love.graphics.push()
+        love.graphics.setBlendMode('add')
+        love.graphics.draw(self.spawnEffect)
+        love.graphics.setBlendMode('alpha')
+        love.graphics.pop()
+    end
 end
 
 return player

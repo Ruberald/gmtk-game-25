@@ -7,7 +7,6 @@ local label  = require 'src.ui.components.label'
 -- `...` - additional arguments passed to `manager.enter` or `manager.push`
 function mainMenu:enter(previous, ...)
   -- set up the level
-  love.graphics.setBackgroundColor(colors.rgbForGraphics(colors.Slate800))
 
   local clicks = 0
   menu = badr { column = true, gap = 10 }
@@ -29,8 +28,11 @@ function mainMenu:enter(previous, ...)
         end
       end }
       + button { text = 'Credits', width = 200, onClick = function()
-        roomy:push(scenes.credits)
-      end }
+          roomy:push(scenes.credits)
+        end }
+      + button { text = 'Return', width = 200, onClick = function()
+          roomy:pop()
+         end }
       + button { text = 'Quit', width = 200, onClick = function() love.event.quit() end }
       + button {
         text = 'Clicked: 0',

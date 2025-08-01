@@ -11,12 +11,13 @@ function love.load()
     })
 
     love.window.setTitle(CONFIG.window.title)
+    love.graphics.setDefaultFilter('nearest','nearest')
 
     if CONFIG.window.icon then
         love.window.setIcon(love.image.newImageData(CONFIG.window.icon))
     end
 
-    roomy:hook()
+    roomy:hook({exclude = { 'update', 'draw' }})
 
     if CONFIG.showSplash then
         roomy:enter(scenes.splash)
@@ -35,13 +36,23 @@ lurker.postswap = function(fileName)
 end
 
 function love.update(dt)
-    lurker.update()
-    Game:update(dt)
+    lurker.update(dt)
+    local top = roomy._scenes[#roomy._scenes]
+    if top.update then
+        top:update(dt)
+    else
+        Game:update(dt)
+    end
 end
 
 function love.draw()
     local drawTimeStart = love.timer.getTime()
-    Game:draw()
+    local top = roomy._scenes[#roomy._scenes]
+    if top.draw then
+        top:draw()
+    else
+        Game:draw()
+    end
     local drawTimeEnd = love.timer.getTime()
 
     if DEBUG then
@@ -88,11 +99,21 @@ function drawDebugStats(drawTime)
     love.graphics.pop()
 end
 
-function love.keypressed(key, code, isRepeat)
+function love.keypressed(key, scancode, isRepeat)
     if key == 'escape' then
-        roomy:enter(scenes.mainMenu)
-    elseif not RELEASE and code == CONFIG.debug.key then
+        local topScene = roomy._scenes[#roomy._scenes]
+        if topScene == scenes.mainMenu then
+            roomy:pop()
+        else
+            roomy:push(scenes.mainMenu)
+        end
+    elseif not RELEASE and scancode == CONFIG.debug.key then
         DEBUG = not DEBUG
+    else
+        local topScene = roomy._scenes[#roomy._scenes]
+        if topScene.keypressed then
+            topScene:keypressed(key, scancode, isRepeat)
+        end
     end
 end
 

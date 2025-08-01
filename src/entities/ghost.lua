@@ -83,6 +83,7 @@ function ghost:reset(initialGridX, initialGridY, tileSize, actionList)
     self.moving = false
     self.moveTimer = 0
     self.isFinished = false
+    self.drawScale = tileSize / self.width
 
     if actionList and #actionList > 0 then
         self.actions = actionList
