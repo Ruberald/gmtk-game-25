@@ -3,6 +3,7 @@ local level2Data = require 'src.levels.level2'
 local level3Data = require 'src.levels.level3'
 local player = require 'src.entities.player'
 local ghost = require 'src.entities.ghost'
+local enemy = require 'src.entities.enemy'
 
 local function createLevel(tiledMapData, nextLevelKey)
     local level = {
@@ -78,6 +79,9 @@ local function createLevel(tiledMapData, nextLevelKey)
 
         player:load()
         ghost:load()
+
+        enemy:load()
+
         self.lastRunActions = nil
         ghost:reset(self.playerStartX, self.playerStartY, self.tileSize, nil)
         self:startNewRun()
@@ -89,6 +93,7 @@ local function createLevel(tiledMapData, nextLevelKey)
         end
         self.gameTimer = 0
         self.currentRunActions = {}
+        enemy:reset(10, 10, self.tileSize)
         player:reset(self.playerStartX, self.playerStartY, self.tileSize)
         if self.lastRunActions then
             ghost:reset(self.playerStartX, self.playerStartY, self.tileSize, self.lastRunActions)
@@ -99,6 +104,7 @@ local function createLevel(tiledMapData, nextLevelKey)
         self.gameTimer = self.gameTimer + dt
         player:update(dt, self.collisionMap, self.tileSize, self.gameTimer, self.currentRunActions)
         ghost:update(dt, self.gameTimer)
+        enemy:update(dt, player, ghost)
 
         local tx, ty = player.gridX, player.gridY
         if not player.isDead and self.tileLayers[3][ty] and self.tileLayers[3][ty][tx] == 67 then
@@ -146,6 +152,7 @@ local function createLevel(tiledMapData, nextLevelKey)
 
         ghost:draw()
         player:draw()
+        enemy:draw()
 
         love.graphics.pop()
     end
