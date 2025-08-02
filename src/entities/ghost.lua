@@ -26,6 +26,7 @@ local ghost = {
     tileSize = 32,
     active = false,
     isFinished = false,
+    spawnEffect = nil,
 }
 
 
@@ -65,6 +66,18 @@ function ghost:load()
             end
         end
     end
+
+    if not self.spawnEffect then
+        local partImg = love.graphics.newImage('assets/particle.png')
+        self.spawnEffect = love.graphics.newParticleSystem(partImg, 300)
+        self.spawnEffect:setParticleLifetime(0.1, 0.2)
+        self.spawnEffect:setEmissionRate(0)
+        self.spawnEffect:setSpeed(50, 150)
+        self.spawnEffect:setSpread(math.pi * 2)
+        self.spawnEffect:setLinearAcceleration(0, 0, 0, 0)
+        self.spawnEffect:setSizes(0.05, 0.02)
+        self.spawnEffect:setColors(1,1,1,1, 1,1,1,0)
+    end
 end
 
 function ghost:reset(initialGridX, initialGridY, tileSize, actionList)
@@ -92,6 +105,12 @@ function ghost:reset(initialGridX, initialGridY, tileSize, actionList)
     else
         self.actions = nil
         self.active = false
+    end
+
+    -- spawn effect at reset
+    if self.spawnEffect then
+        self.spawnEffect:setPosition(self.x, self.y)
+        self.spawnEffect:emit(25)
     end
 end
 
@@ -142,6 +161,10 @@ function ghost:update(dt, gameTimer)
         end
     end
 
+    if self.spawnEffect then
+        self.spawnEffect:update(dt)
+    end
+
     local cols = (self.currentAnimation == 'idle') and IDLE_COLS or WALK_COLS
     local frameTime = (self.currentAnimation == 'idle') and self.frameDurationIdle or self.frameDurationRun
     self.animationTimer = self.animationTimer + dt
@@ -172,6 +195,14 @@ function ghost:draw()
         rot, scaleX, self.drawScale,
         FRAME_W/2, FRAME_H/2)
     love.graphics.setColor(1, 1, 1, 1)
+
+    if self.spawnEffect then
+        love.graphics.push()
+        love.graphics.setBlendMode('add')
+        love.graphics.draw(self.spawnEffect)
+        love.graphics.setBlendMode('alpha')
+        love.graphics.pop()
+    end
 end
 
 return ghost
