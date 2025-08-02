@@ -12,6 +12,9 @@ local TILE_DEFS = {
     spike1 = { tileset = "Sprites2", localId = 8 }, 
     spike2 = { tileset = "Sprites2", localId = 9 }, 
     spike3 = { tileset = "Sprites2", localId = 10 }, 
+
+    shinyStar1 = { tileset = "shiny_star", localId = 0 },
+    shinyStar2 = { tileset = "shiny_star", localId = 1 },
 }
 
 return TILE_DEFS
