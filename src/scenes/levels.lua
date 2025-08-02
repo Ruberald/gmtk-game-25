@@ -54,7 +54,7 @@ local function createLevel(tiledMapData, nextLevelKey)
         doorTimer = 0,
         doorOpenDuration = 1,
         buttonWasPressed = false,
-        pressurePlateWasPressed = false,    
+        pressurePlateWasPressed = false,
     }
 
     function level:load()
@@ -175,12 +175,12 @@ local function createLevel(tiledMapData, nextLevelKey)
     function level:update(dt)
         self.gameTimer = self.gameTimer + dt
         local newZ = player:update(dt, self.collisionMap, self.tileSize, self.gameTimer, self.currentRunActions, self.playerCurrentZ)
-        self.playerCurrentZ = newZ        
+        self.playerCurrentZ = newZ
         ghost:update(dt, self.gameTimer)
         enemy:update(dt, player, ghost)
 
         if #self.spikePositions > 0 then
-=            self.spikeTimer = self.spikeTimer + dt
+            self.spikeTimer = self.spikeTimer + dt
             local interval = (self.spikeFrame == 1) and 0.75 or 0.25
             if self.spikeTimer >= interval then
                 self.spikeTimer = self.spikeTimer - interval
