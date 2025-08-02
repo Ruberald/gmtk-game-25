@@ -35,6 +35,7 @@ local player = {
     pitfallDuration = 0.4,
 
     spawnEffect = nil,
+    hasKey = false
 
 }
 
@@ -230,7 +231,7 @@ function player:update(dt, collisionMap, tileSize, gameTimer, actionsTable, curr
             self.x = startX + (endX - startX) * moveProgress
             self.y = startY + (endY - startY) * moveProgress
         end
-        
+
         if self.currentAnimation ~= newAnimation then
             self.currentAnimation = newAnimation
             self.currentFrame = 1
@@ -287,7 +288,7 @@ function player:update(dt, collisionMap, tileSize, gameTimer, actionsTable, curr
                 end
             end
         end
-        
+
         if self.currentAnimation ~= newAnimation then
             self.currentAnimation = newAnimation
             self.currentFrame = 1

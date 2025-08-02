@@ -4,6 +4,7 @@ local level3Data = require 'src.levels.level3'
 local player = require 'src.entities.player'
 local ghost = require 'src.entities.ghost'
 local enemy = require 'src.entities.enemy'
+local key = require 'src.entities.key'
 
 local function createLevel(tiledMapData, nextLevelKey)
     local level = {
@@ -62,6 +63,9 @@ local function createLevel(tiledMapData, nextLevelKey)
         self.collisionMap = {}
         self.tileQuads = {}
         self.doorPos, self.buttonPos, self.pressurePlatePos = nil, nil, nil
+
+        key:load(10, 7, self.tileSize)
+        self.key = key
 
         for _, ts in ipairs(tiledMapData.tilesets) do
             local image = love.graphics.newImage('assets/' .. ts.name .. '.png')
@@ -135,7 +139,7 @@ local function createLevel(tiledMapData, nextLevelKey)
         player:load()
         ghost:load()
 
-        enemy:load()
+        -- enemy:load()
 
         self.lastRunActions = nil
         ghost:reset(self.playerStartX, self.playerStartY, self.tileSize, nil)
@@ -146,7 +150,7 @@ local function createLevel(tiledMapData, nextLevelKey)
         if #self.currentRunActions > 0 then self.lastRunActions = self.currentRunActions end
         self.gameTimer = 0
         self.currentRunActions = {}
-        enemy:reset(10, 10, self.tileSize)
+        -- enemy:reset(10, 10, self.tileSize)
 
         self.playerCurrentZ = 0
         player:reset(self.playerStartX, self.playerStartY, self.tileSize, self.playerCurrentZ)
@@ -177,7 +181,8 @@ local function createLevel(tiledMapData, nextLevelKey)
         local newZ = player:update(dt, self.collisionMap, self.tileSize, self.gameTimer, self.currentRunActions, self.playerCurrentZ)
         self.playerCurrentZ = newZ
         ghost:update(dt, self.gameTimer)
-        enemy:update(dt, player, ghost)
+        -- enemy:update(dt, player, ghost)
+        self.key:update(player)
 
         if #self.spikePositions > 0 then
             self.spikeTimer = self.spikeTimer + dt
@@ -254,6 +259,14 @@ local function createLevel(tiledMapData, nextLevelKey)
                 local btnLayer = self.buttonPos.layer
                 self.tileLayers[btnLayer][self.buttonPos.y][self.buttonPos.x] = self.buttonWasPressed and self.pressedButton or self.button
             end
+
+            if not self.isDoorOpen and player.hasKey and self.doorPos then
+                if player.gridX == self.levelUpPos.x and player.gridY == self.levelUpPos.y then
+                    self.isDoorOpen = true
+                    self.tileLayers[self.doorPos.layer][self.doorPos.y][self.doorPos.x] = 0
+                    self.collisionMap[self.doorPos.y][self.doorPos.x] = 0
+                end
+            end
         end
 
         local p_tx, p_ty = player.gridX, player.gridY
@@ -302,7 +315,8 @@ local function createLevel(tiledMapData, nextLevelKey)
 
         ghost:draw()
         player:draw()
-        enemy:draw()
+        -- enemy:draw()
+        self.key:draw()
 
         love.graphics.pop()
         local sw, sh = love.graphics.getDimensions()
