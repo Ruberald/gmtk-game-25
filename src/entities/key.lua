@@ -4,10 +4,15 @@ local key = {
     tileSize = 16,
     picked = false,
 
+    initialGridX = 1,
+    initialGridY = 1,
+
     image = nil,
 }
 
 function key:load(x, y, tileSize)
+    self.initialGridX = x
+    self.initialGridY = y
     self.gridX = x
     self.gridY = y
     self.tileSize = tileSize
@@ -21,8 +26,15 @@ function key:update(player)
     if not self.picked and player.gridX == self.gridX and player.gridY == self.gridY then
         self.picked = true
         player.hasKey = true
-        -- Optional: play sound, animation, etc.
     end
+end
+
+function key:reset()
+    self.gridX = self.initialGridX
+    self.gridY = self.initialGridY
+    self.x = (self.gridX - 1) * self.tileSize + self.tileSize / 2
+    self.y = (self.gridY - 1) * self.tileSize + self.tileSize / 2
+    self.picked = false
 end
 
 function key:draw()
@@ -32,4 +44,3 @@ function key:draw()
 end
 
 return key
-

@@ -150,7 +150,9 @@ local function createLevel(tiledMapData, nextLevelKey)
         if #self.currentRunActions > 0 then self.lastRunActions = self.currentRunActions end
         self.gameTimer = 0
         self.currentRunActions = {}
+
         -- enemy:reset(10, 10, self.tileSize)
+        key:reset()
 
         self.playerCurrentZ = 0
         player:reset(self.playerStartX, self.playerStartY, self.tileSize, self.playerCurrentZ)

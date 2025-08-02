@@ -145,6 +145,7 @@ function player:reset(initialGridX, initialGridY, tileSize, initialZ)
     self.facingRow = 6
     self.initialDrawScale = 1
     self.drawScale = self.initialDrawScale
+    self.hasKey = false
 
     if self.spawnEffect then
         self.spawnEffect:setPosition(self.x, self.y)
