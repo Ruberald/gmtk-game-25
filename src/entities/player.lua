@@ -3,6 +3,8 @@ local player = {
     gridX = 1, gridY = 1,
     targetGridX = 1, targetGridY = 1,
 
+    currentZ = 0,
+
     moving = false,
     moveTimer = 0,
     moveDuration = 0.2,
@@ -122,9 +124,10 @@ function player:load()
    end
 end
 
-function player:reset(initialGridX, initialGridY, tileSize)
+function player:reset(initialGridX, initialGridY, tileSize, initialZ)
     self.gridX = initialGridX
     self.gridY = initialGridY
+    self.currentZ = initialZ
     self.targetGridX = initialGridX
     self.targetGridY = initialGridY
     self.x = (self.gridX - 1) * tileSize + (tileSize / 2)
@@ -172,7 +175,8 @@ function player:die(type)
     end
 end
 
-function player:update(dt, collisionMap, tileSize, gameTimer, actionsTable)
+function player:update(dt, collisionMap, tileSize, gameTimer, actionsTable, currentZ)
+    self.currentZ = currentZ
     if self.isDead then
         if self.isReadyToRespawn then return end
 
@@ -201,7 +205,7 @@ function player:update(dt, collisionMap, tileSize, gameTimer, actionsTable)
                 self.isReadyToRespawn = true
             end
         end
-        return
+        return self.currentZ
     end
 
     if self.moving then
@@ -302,6 +306,8 @@ function player:update(dt, collisionMap, tileSize, gameTimer, actionsTable)
     if self.spawnEffect then
         self.spawnEffect:update(dt)
     end
+
+    return self.currentZ
 end
 
 function player:draw()

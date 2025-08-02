@@ -193,7 +193,7 @@ function ghost:draw()
     love.graphics.draw(img, currentQuad,
         self.x, self.y,
         rot, scaleX, self.drawScale,
-        FRAME_W/2, FRAME_H/2)
+        FRAME_W/2, FRAME_H/2 + 4)
     love.graphics.setColor(1, 1, 1, 1)
 
     if self.spawnEffect then

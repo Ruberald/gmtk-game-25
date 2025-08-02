@@ -5,7 +5,11 @@ local levels = require 'src.scenes.levels'
 
 Game.currentLevel = levels.level1
 
-function Game:load()
+function Game:load(resetHistory)
+    if resetHistory then
+        self.currentLevel.lastRunActions = nil
+        self.currentLevel.currentRunActions = {}
+    end
     self.currentLevel:load()
 end
 

@@ -13,10 +13,10 @@ function mainMenu:enter(previous, ...)
   menu = badr { column = true, gap = 10 }
       + label({ text = "Main Menu", width = 200 })
       + button {
-        text = 'New game',
+        text = 'Reset Level',
         width = 200,
         onClick = function()
-          Game:load()
+          Game:load(true)
           roomy:pop()
         end
       }
