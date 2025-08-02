@@ -89,7 +89,7 @@ local function createLevel(tiledMapData, nextLevelKey)
                 local objType = self:getProperty(obj.properties, "type")
                 local tileX = math.floor(obj.x / self.tileSize) + 1
                 local tileY = math.floor(obj.y / self.tileSize) + 1
-                
+
                 if objType == "plate" then
                     print("Found plate at:", tileX, tileY)
                     table.insert(self.plates, {
@@ -157,6 +157,9 @@ end
         -- open/close doors with the matching ID
         for _, door in ipairs(self.doors) do
             if door.id == targetID then
+                if door.isOpen ~= isActive then
+                    if self.sounds.doorOpen then self.sounds.doorOpen:play() end
+                end
                 door.isOpen = isActive
                 self.collisionMap[door.y][door.x] = door.isOpen and 0 or 1
                 local doorTID = door.isOpen and 0 or self.tileIDs.doorBlock
@@ -213,8 +216,14 @@ end
             end
         end
 
+        self.sounds = {
+            doorOpen = love.audio.newSource("assets/sfx/door.mp3", "static"),
+            spikeKill = love.audio.newSource("assets/sfx/spike.mp3", "static"),
+            platePress = love.audio.newSource("assets/sfx/plate.mp3", "static")
+        }
+
         self:loadInteractionObjects()
-        
+
         player:load()
         ghost:load()
         key:load(10, 7, self.tileSize) -- key needs to be moved to the interactions layer too
@@ -280,6 +289,7 @@ end
             -- detect new press and start timer
             if onPlate and not plate.isPressed and not plate.wasOnPlate then
                 print("PLAYER/GHOST STEPPED ON PLATE. Activating targets: " .. plate.targets)
+                if self.sounds.platePress then self.sounds.platePress:play() end
                 plate.isPressed = true
                 plate.timer = 1
                 self:setTargetsActive(plate.targets, true)
@@ -328,6 +338,7 @@ end
                 end
                 if spike.frame > 1 then 
                     if not player.isDead and player.gridX == spike.x and player.gridY == spike.y then
+                        if self.sounds.spikeKill then self.sounds.spikeKill:play() end
                         player:die('normal')
                     end
                     if ghost.active and ghost.gridX == spike.x and ghost.gridY == spike.y then
