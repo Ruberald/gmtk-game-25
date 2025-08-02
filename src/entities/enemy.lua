@@ -175,7 +175,7 @@ function enemy:draw()
     love.graphics.draw(
         image,
         quad,
-        self.x + offsetX, self.y,
+        self.x , self.y,
         0,
         scaleX, self.drawScale,
         self.width / 2, self.height / 2
