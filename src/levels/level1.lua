@@ -171,7 +171,7 @@ return {
         0, 0, 0, 0, 0, 5, 0, 66, 15, 5, 15, 15, 31, 0, 31, 0, 0, 67, 0, 0,
         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 21, 0, 21, 127, 0, 0, 125, 0,
         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 29, 51, 0, 38, 80, 0, 67, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 46, 0, 47, 0, 109, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 46, 0, 47, 0, 0, 0, 0, 0, 0, 0, 0,
         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 74, 0, 0, 0, 0,
         0, 121, 79, 0, 0, 0, 0, 0, 0, 0, 0, 113, 0, 113, 0, 0, 102, 0, 0, 0,
         0, 102, 102, 0, 0, 0, 0, 0, 125, 0, 0, 113, 106, 113, 0, 0, 67, 0, 0, 0,
@@ -215,6 +215,48 @@ return {
         1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1
       }
+    },
+    {
+        type = "objectgroup",
+        id = 10,
+        name = "Interactions",
+        visible = true,
+        opacity = 1,
+        offsetx = 0,
+        offsety = 0,
+        draworder = "topdown",
+        properties = {},
+        objects = {
+            {
+                id = 1, name = "playerStart", x = 7 * 16, y = 5 * 16, width = 16, height = 16,
+                properties = { { name = "type", type = "string", value = "playerStart" } }
+            },
+            {
+                id = 2, name = "mainDoor", x = 13 * 16, y = 4 * 16, width = 16, height = 16,
+                properties = {
+                    { name = "type", type = "string", value = "door" },
+                    { name = "id", type = "string", value = "main_door" }
+                }
+            },
+            {
+                id = 3, name = "spikePlate", x = 12 * 16, y = 10 * 16, width = 16, height = 16,
+                properties = {
+                    { name = "type", type = "string", value = "plate" },
+                    { name = "targets", type = "string", value = "main_door" }
+                }
+            },
+            { id = 4, name="spike1", x = 11 * 16, y = 9 * 16, width=16, height=16, properties = {{ name = "type", type = "string", value = "spike" }, { name = "id", type = "string", value = "spike_group_alpha" }} },
+            { id = 5, name="spike2", x = 13 * 16, y = 9 * 16, width=16, height=16, properties = {{ name = "type", type = "string", value = "spike" }, { name = "id", type = "string", value = "spike_group_alpha" }} },
+            { id = 6, name="spike3", x = 11 * 16, y = 10 * 16, width=16, height=16, properties = {{ name = "type", type = "string", value = "spike" }, { name = "id", type = "string", value = "spike_group_alpha" }} },
+            { id = 7, name="spike4", x = 12 * 16, y = 11 * 16, width=16, height=16, properties = {{ name = "type", type = "string", value = "spike" }, { name = "id", type = "string", value = "spike_group_alpha" }} },
+            { id = 8, name="spike3", x = 11 * 16, y = 11 * 16, width=16, height=16, properties = {{ name = "type", type = "string", value = "spike" }, { name = "id", type = "string", value = "spike_group_alpha" }} },
+            { id = 9, name="spike3", x = 13 * 16, y = 11 * 16, width=16, height=16, properties = {{ name = "type", type = "string", value = "spike" }, { name = "id", type = "string", value = "spike_group_alpha" }} },
+            { id = 10, name="spike3", x = 13 * 16, y = 10 * 16, width=16, height=16, properties = {{ name = "type", type = "string", value = "spike" }, { name = "id", type = "string", value = "spike_group_alpha" }} },
+            {
+                id = 11, name = "levelExit", x = 13 * 16, y = 5 * 16, width = 16, height = 16,
+                properties = { { name = "type", type = "string", value = "levelUp" } }
+            }
+        }
     }
   }
 }
