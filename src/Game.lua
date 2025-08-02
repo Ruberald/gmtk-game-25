@@ -18,8 +18,8 @@ function Game:load(resetHistory)
 
     -- Load music once
     if not track1 then
-        track1 = love.audio.newSource("assets/levels1.wav", "stream")
-        track2 = love.audio.newSource("assets/levels2.wav", "stream")
+        track1 = love.audio.newSource("assets/levels1.mp3", "stream")
+        track2 = love.audio.newSource("assets/levels2.mp3", "stream")
         track1:setLooping(false)
         track2:setLooping(false)
         track1:play()

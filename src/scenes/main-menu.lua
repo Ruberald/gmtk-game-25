@@ -12,7 +12,7 @@ function mainMenu:enter(previous, ...)
     end
   -- Load music if not already loaded
   if not menuMusic then
-    menuMusic = love.audio.newSource("assets/main_menu.wav", "stream")
+    menuMusic = love.audio.newSource("assets/main_menu.mp3", "stream")
     menuMusic:setLooping(true)
   end
   love.audio.play(menuMusic)
