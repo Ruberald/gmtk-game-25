@@ -64,10 +64,10 @@ local function createLevel(tiledMapData, nextLevelKey)
             end
         end
 
-        -- print("Loaded Tile IDs:")
-        -- for name, id in pairs(self.tileIDs) do
-        --     print(name .. ": " .. id)
-        -- end
+        print("Loaded Tile IDs:")
+        for name, id in pairs(self.tileIDs) do
+            print(name .. ": " .. id)
+        end
     end
 
 
@@ -168,6 +168,9 @@ end
 
     function level:load()
         self:buildTileDictionary()
+        self.shinyFrame = 1
+        self.shinyTimer = 0
+        self.nextShinySwitch = love.math.random() * 0.75 + 0.25
 
         self.tileLayers = {}
         self.collisionMap = {}
@@ -246,6 +249,13 @@ end
             button.wasPressed = false
             self:setTargetsActive(button.targets, false)
         end
+        for _, spike in ipairs(self.spikes) do
+            spike.isActive = true
+            spike.frame = 1
+            spike.timer = 0
+            spike.direction = 1
+            self.tileLayers[spike.layerIndex][spike.y][spike.x] = self.tileIDs['spike' .. spike.frame]
+        end
     end
 
     function level:update(dt)
@@ -253,6 +263,13 @@ end
         player:update(dt, self.collisionMap, self.tileSize, self.gameTimer, self.currentRunActions)
         ghost:update(dt, self.gameTimer)
         self.key:update(player)
+
+        self.shinyTimer = self.shinyTimer + dt
+        if self.shinyTimer >= self.nextShinySwitch then
+            self.shinyTimer = self.shinyTimer - self.nextShinySwitch
+            self.nextShinySwitch = love.math.random() * 0.75 + 0.25
+            self.shinyFrame = (self.shinyFrame == 1) and 2 or 1
+        end
 
         -- check Plates
         for _, plate in ipairs(self.plates) do
@@ -330,7 +347,10 @@ end
         
         if not player.isDead and not player.moving and self.levelUpPos then
             if player.gridX == self.levelUpPos.x and player.gridY == self.levelUpPos.y then
-                local canExit = player.hasKey or self.collisionMap[self.levelUpPos.y][self.levelUpPos.x] == 0
+                local canExit = player.hasKey or (
+                    self.levelUpPos.y > 1 and
+                    self.collisionMap[self.levelUpPos.y - 1][self.levelUpPos.x] == 0
+                )
                 if canExit then
                     return self.nextLevelKey
                 end
@@ -360,7 +380,11 @@ end
                 for x = 1, self.mapWidthInTiles do
                     local tid = layer[y][x]
                     if tid and tid ~= 0 then
-                        local info = self.tileQuads[tid]
+                        local drawTid = tid
+                        if tid == self.tileIDs.shinyStar1 then
+                            drawTid = self.tileIDs['shinyStar' .. self.shinyFrame]
+                        end
+                        local info = self.tileQuads[drawTid]
                         if info then
                             love.graphics.draw(info.image, info.quad, (x - 1) * self.tileSize, (y - 1) * self.tileSize)
                         end

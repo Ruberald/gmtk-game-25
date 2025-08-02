@@ -4,7 +4,7 @@ local Game = {}
 local levels = require 'src.scenes.levels'
 local settings = require 'src.settings'
 
-Game.currentLevel = levels.level1
+Game.currentLevel = levels.level2
 
 -- Music sources
 local track1, track2
