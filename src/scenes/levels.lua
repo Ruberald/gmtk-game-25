@@ -5,6 +5,7 @@ local player = require 'src.entities.player'
 local ghost = require 'src.entities.ghost'
 local enemy = require 'src.entities.enemy'
 local key = require 'src.entities.key'
+local TILE_DEFS = require 'src.levels.tile_definition'
 
 local function createLevel(tiledMapData, nextLevelKey)
     local level = {
@@ -16,10 +17,16 @@ local function createLevel(tiledMapData, nextLevelKey)
         playerStartX = 8,
         playerStartY = 6,
 
-        tilesetImage = nil,
         tileQuads = {},
         tileLayers = {},
         collisionMap = {},
+        tileIDs = {}, 
+
+        plates = {},
+        spikes = {},
+        doors = {},
+        buttons = {},
+        levelUpPos = nil,
 
         scale = 1,
         offsetX = 0,
@@ -28,44 +35,143 @@ local function createLevel(tiledMapData, nextLevelKey)
         gameTimer = 0,
         currentRunActions = {},
         lastRunActions = nil,
-
-        -- tile ids
-        chasm = 67,
-        closedDoor = 66,
-        openDoor = 53,
-        doorBlock = 81,
-        levelUpTile = 34,
-        pressurePlate = 106,
-        pressedPressurePlate = 107,
-        leverUp = 108,
-        button = 109,
-        pressedButton = 111,
-        leverDown = 112,
-        spike1 = 113,
-        spike2 = 114,
-        spike3 = 115,
-        spikeInterval = 0.5,
-        spikeDirection = 1,
-
-        -- interactable object state
-        doorPos = nil,
-        buttonPos = nil,
-        pressurePlatePos = nil,
-        isDoorOpen = false,
-        doorTimer = 0,
-        doorOpenDuration = 1,
-        buttonWasPressed = false,
-        pressurePlateWasPressed = false,
     }
 
+    function level:getProperty(props, name)
+        if not props then return nil end
+        for _, p in ipairs(props) do
+            if p.name == name then
+                return p.value
+            end
+        end
+        return nil
+    end
+
+    function level:buildTileDictionary()
+        self.tileIDs = {}
+        local tilesetInfo = {}
+
+        for _, ts in ipairs(tiledMapData.tilesets) do
+            tilesetInfo[ts.name] = ts.firstgid
+        end
+
+        for name, def in pairs(TILE_DEFS) do
+            local firstgid = tilesetInfo[def.tileset]
+            if firstgid then
+                self.tileIDs[name] = firstgid + def.localId
+            else
+                print(string.format("WARNING: Tileset '%s' not found in map for tile '%s'", def.tileset, name))
+            end
+        end
+
+        -- print("Loaded Tile IDs:")
+        -- for name, id in pairs(self.tileIDs) do
+        --     print(name .. ": " .. id)
+        -- end
+    end
+
+
+
+    function level:loadInteractionObjects()
+    print("--- Loading Interaction Objects ---")
+    self.plates = {}
+    self.spikes = {}
+    self.doors = {}
+    self.buttons = {}
+    self.levelUpPos = nil
+
+    local interactionLayerFound = false
+    for _, layer in ipairs(tiledMapData.layers) do
+        if layer.type == "objectgroup" and layer.name == "Interactions" then
+            interactionLayerFound = true
+            print("Found 'Interactions' layer with " .. #layer.objects .. " objects.")
+            for _, obj in ipairs(layer.objects) do
+                local objType = self:getProperty(obj.properties, "type")
+                local tileX = math.floor(obj.x / self.tileSize) + 1
+                local tileY = math.floor(obj.y / self.tileSize) + 1
+                
+                if objType == "plate" then
+                    print("Found plate at:", tileX, tileY)
+                    table.insert(self.plates, {
+                        x = tileX,
+                        y = tileY,
+                        targets = self:getProperty(obj.properties, "targets"),
+                        isPressed = false,
+                        layerIndex = 4,
+                        timer = nil,
+                        wasOnPlate = false,
+                    })
+                elseif objType == "spike" then
+                    print("Found spike at:", tileX, tileY, "with id:", self:getProperty(obj.properties, "id"))
+                    table.insert(self.spikes, {
+                        x = tileX,
+                        y = tileY,
+                        id = self:getProperty(obj.properties, "id"),
+                        isActive = true,
+                        layerIndex = 4,
+                        frame = 1,
+                        timer = 0,
+                        direction = 1
+                    })
+                elseif objType == "door" then
+                    print("Found door at:", tileX, tileY)
+                     table.insert(self.doors, {
+                        x = tileX,
+                        y = tileY,
+                        id = self:getProperty(obj.properties, "id"),
+                        isOpen = false,
+                        layerIndex = 3 
+                     })
+                elseif objType == "button" then
+                    print("Found button at:", tileX, tileY)
+                    table.insert(self.buttons, {
+                        x = tileX,
+                        y = tileY,
+                        targets = self:getProperty(obj.properties, "targets"),
+                        wasPressed = false,
+                        layerIndex = 4 
+                    })
+                elseif objType == "levelUp" then
+                    self.levelUpPos = { x = tileX, y = tileY }
+                elseif objType == "playerStart" then
+                    self.playerStartX = tileX
+                    self.playerStartY = tileY
+                end
+            end
+        end
+    end
+    if not interactionLayerFound then
+        print("!!! ERROR: 'Interactions' object layer NOT FOUND in map data.")
+    end
+end
+
+
+    function level:setTargetsActive(targetID, isActive)
+        -- deactivate spikes
+        for _, spike in ipairs(self.spikes) do
+            if spike.id == targetID then
+                spike.isActive = isActive
+            end
+        end
+
+        -- open/close doors with the matching ID
+        for _, door in ipairs(self.doors) do
+            if door.id == targetID then
+                door.isOpen = isActive
+                self.collisionMap[door.y][door.x] = door.isOpen and 0 or 1
+                local doorTID = door.isOpen and 0 or self.tileIDs.doorBlock
+                self.tileLayers[door.layerIndex][door.y][door.x] = doorTID
+            end
+        end
+    end
+
+
     function level:load()
+        self:buildTileDictionary()
+
         self.tileLayers = {}
         self.collisionMap = {}
         self.tileQuads = {}
-        self.doorPos, self.buttonPos, self.pressurePlatePos = nil, nil, nil
-
-        key:load(10, 7, self.tileSize)
-        self.key = key
 
         for _, ts in ipairs(tiledMapData.tilesets) do
             local image = love.graphics.newImage('assets/' .. ts.name .. '.png')
@@ -97,49 +203,19 @@ local function createLevel(tiledMapData, nextLevelKey)
                 end
 
                 if layerData.name == "Collisions" then
-                    self.collisionMap = layer2D
+                    self.collisionMap = layer2D  -- collision layer will not get rendered
                 else
                     table.insert(self.tileLayers, layer2D)
                 end
             end
         end
 
-        for layerIndex, layer in ipairs(self.tileLayers) do
-            for y = 1, self.mapHeightInTiles do
-                for x = 1, self.mapWidthInTiles do
-                    local tid = layer[y][x]
-                    if tid == self.doorBlock then
-                        self.doorPos = { layer = layerIndex, x = x, y = y }
-                        self.collisionMap[y][x] = 1
-                    elseif tid == self.button then
-                        self.buttonPos = { layer = layerIndex, x = x, y = y }
-                    elseif tid == self.pressurePlate then
-                        self.pressurePlatePos = { layer = layerIndex, x = x, y = y }
-                    elseif tid == self.levelUpTile then
-                        self.levelUpPos = { layer = layerIndex, x = x, y = y }
-                    end
-                end
-            end
-        end
-
-        self.spikePositions = {}
-        for layerIndex, layer in ipairs(self.tileLayers) do
-            for y = 1, self.mapHeightInTiles do
-                for x = 1, self.mapWidthInTiles do
-                    if layer[y][x] == self.spike1 then
-                        table.insert(self.spikePositions, { layer = layerIndex, x = x, y = y })
-                    end
-                end
-            end
-        end
-        self.spikeTimer = 0
-        self.spikeFrame = 1
-        self.spikeDirection = 1
-
+        self:loadInteractionObjects()
+        
         player:load()
         ghost:load()
-
-        -- enemy:load()
+        key:load(10, 7, self.tileSize) -- key needs to be moved to the interactions layer too
+        self.key = key
 
         self.lastRunActions = nil
         ghost:reset(self.playerStartX, self.playerStartY, self.tileSize, nil)
@@ -154,131 +230,110 @@ local function createLevel(tiledMapData, nextLevelKey)
         -- enemy:reset(10, 10, self.tileSize)
         key:reset()
 
-        self.playerCurrentZ = 0
-        player:reset(self.playerStartX, self.playerStartY, self.tileSize, self.playerCurrentZ)
+        player:reset(self.playerStartX, self.playerStartY, self.tileSize)
 
         if self.lastRunActions then
             ghost:reset(self.playerStartX, self.playerStartY, self.tileSize, self.lastRunActions)
         end
 
-        self.isDoorOpen = false
-        self.doorTimer = 0
-        self.buttonWasPressed = false
-        self.pressurePlateWasPressed = false
-
-        if self.doorPos then
-            self.tileLayers[self.doorPos.layer][self.doorPos.y][self.doorPos.x] = self.doorBlock
-            self.collisionMap[self.doorPos.y][self.doorPos.x] = 1
+        for _, plate in ipairs(self.plates) do
+            plate.isPressed = false
+            plate.timer = nil
+            plate.wasOnPlate = false
+            self:setTargetsActive(plate.targets, false)
         end
-        if self.buttonPos then
-            self.tileLayers[self.buttonPos.layer][self.buttonPos.y][self.buttonPos.x] = self.button
-        end
-        if self.pressurePlatePos then
-            self.tileLayers[self.pressurePlatePos.layer][self.pressurePlatePos.y][self.pressurePlatePos.x] = self.pressurePlate
+        for _, button in ipairs(self.buttons) do
+            button.wasPressed = false
+            self:setTargetsActive(button.targets, false)
         end
     end
 
     function level:update(dt)
         self.gameTimer = self.gameTimer + dt
-        local newZ = player:update(dt, self.collisionMap, self.tileSize, self.gameTimer, self.currentRunActions, self.playerCurrentZ)
-        self.playerCurrentZ = newZ
+        player:update(dt, self.collisionMap, self.tileSize, self.gameTimer, self.currentRunActions)
         ghost:update(dt, self.gameTimer)
-        -- enemy:update(dt, player, ghost)
         self.key:update(player)
 
-        if #self.spikePositions > 0 then
-            self.spikeTimer = self.spikeTimer + dt
-            local interval = (self.spikeFrame == 1) and 0.75 or 0.25
-            if self.spikeTimer >= interval then
-                self.spikeTimer = self.spikeTimer - interval
-                if self.spikeFrame == 3 then self.spikeDirection = -1
-                elseif self.spikeFrame == 1 then self.spikeDirection = 1 end
-                self.spikeFrame = self.spikeFrame + self.spikeDirection
-                for _, pos in ipairs(self.spikePositions) do
-                    self.tileLayers[pos.layer][pos.y][pos.x] = self['spike' .. self.spikeFrame]
+        -- check Plates
+        for _, plate in ipairs(self.plates) do
+            local playerOnPlate = (player.gridX == plate.x and player.gridY == plate.y)
+            local ghostOnPlate = (ghost.active and ghost.gridX == plate.x and ghost.gridY == plate.y)
+            local onPlate = playerOnPlate or ghostOnPlate
+
+            -- detect new press and start timer
+            if onPlate and not plate.isPressed and not plate.wasOnPlate then
+                print("PLAYER/GHOST STEPPED ON PLATE. Activating targets: " .. plate.targets)
+                plate.isPressed = true
+                plate.timer = 1
+                self:setTargetsActive(plate.targets, true)
+            end
+
+            -- handle timer countdown for automatic release
+            if plate.isPressed and plate.timer then
+                plate.timer = plate.timer - dt
+                if plate.timer <= 0 then
+                    print("Pressure plate timeout. Deactivating targets: " .. plate.targets)
+                    plate.isPressed = false
+                    plate.timer = nil
+                    self:setTargetsActive(plate.targets, false)
                 end
             end
 
-            local p_tx, p_ty = player.gridX, player.gridY
-            for _, pos in ipairs(self.spikePositions) do
-                if p_tx == pos.x and p_ty == pos.y and not player.isDead then
-                    local tid = self.tileLayers[pos.layer][pos.y][pos.x]
-                    if tid == self.spike2 or tid == self.spike3 then
-                        player:die('normal')
-                        break
-                    end
-                end
-            end
-            for _, pos in ipairs(self.spikePositions) do
-                if ghost.active and ghost.gridX == pos.x and ghost.gridY == pos.y then
-                    local tid = self.tileLayers[pos.layer][pos.y][pos.x]
-                    if tid == self.spike2 or tid == self.spike3 then
-                        ghost:reset(self.playerStartX, self.playerStartY, self.tileSize, self.lastRunActions)
-                        break
-                    end
+            -- update tile appearance
+            local plateTID = plate.isPressed and self.tileIDs.pressedPressurePlate or self.tileIDs.pressurePlate
+            self.tileLayers[plate.layerIndex][plate.y][plate.x] = plateTID
+
+            -- update wasOnPlate for next frame
+            plate.wasOnPlate = onPlate
+        end
+
+        for _, button in ipairs(self.buttons) do
+            if not button.wasPressed then
+                local onButton = (player.gridX == button.x and player.gridY == button.y) or
+                               (ghost.active and ghost.gridX == button.x and ghost.gridY == button.y)
+                if onButton then
+                    button.wasPressed = true
+                    self:setTargetsActive(button.targets, true)
+                    self.tileLayers[button.layerIndex][button.y][button.x] = self.tileIDs.pressedButton
                 end
             end
         end
 
-        if self.doorPos then
-            if self.buttonPos and not self.buttonWasPressed then
-                local onButton = (player.gridX == self.buttonPos.x and player.gridY == self.buttonPos.y)
-                    or (ghost.active and ghost.gridX == self.buttonPos.x and ghost.gridY == self.buttonPos.y)
-                if onButton then
-                    self.buttonWasPressed = true
+        for _, spike in ipairs(self.spikes) do
+            if spike.isActive then
+                spike.timer = spike.timer + dt
+                local interval = (spike.frame == 1) and 0.75 or 0.25
+                if spike.timer >= interval then
+                    spike.timer = spike.timer - interval
+                    if spike.frame == 3 then spike.direction = -1
+                    elseif spike.frame == 1 then spike.direction = 1 end
+                    spike.frame = spike.frame + spike.direction
                 end
-            end
-            if self.pressurePlatePos then
-                if self.doorTimer == 0 then
-                    self.pressurePlateWasPressed = false
+                if spike.frame > 1 then 
+                    if not player.isDead and player.gridX == spike.x and player.gridY == spike.y then
+                        player:die('normal')
+                    end
+                    if ghost.active and ghost.gridX == spike.x and ghost.gridY == spike.y then
+                        ghost:reset(self.playerStartX, self.playerStartY, self.tileSize, self.lastRunActions)
+                    end
                 end
-                local playerOnPlate = player.gridX == self.pressurePlatePos.x and player.gridY == self.pressurePlatePos.y
-                local ghostOnPlate = ghost.active and ghost.gridX == self.pressurePlatePos.x and ghost.gridY == self.pressurePlatePos.y
-                local onPlate = playerOnPlate or ghostOnPlate
-                if onPlate and not self.pressurePlateWasPressed then
-                    self.pressurePlateWasPressed = true
-                    self.doorTimer = self.doorOpenDuration
-                end
-                local plLayer = self.pressurePlatePos.layer
-                local isPressed = self.doorTimer > 0
-                self.tileLayers[plLayer][self.pressurePlatePos.y][self.pressurePlatePos.x] = isPressed and self.pressedPressurePlate or self.pressurePlate
+            else
+                spike.frame = 1 
             end
-            if self.doorTimer > 0 then
-                self.doorTimer = math.max(0, self.doorTimer - dt)
-            end
-            local shouldDoorBeOpen = self.buttonWasPressed or self.doorTimer > 0
-             local dl = self.doorPos.layer
-             if shouldDoorBeOpen and not self.isDoorOpen then
-                 self.isDoorOpen = true
-                 self.tileLayers[dl][self.doorPos.y][self.doorPos.x] = 0
-                 self.collisionMap[self.doorPos.y][self.doorPos.x] = 0
-             elseif not shouldDoorBeOpen and self.isDoorOpen then
-                 self.isDoorOpen = false
-                 self.tileLayers[dl][self.doorPos.y][self.doorPos.x] = self.doorBlock
-                 self.collisionMap[self.doorPos.y][self.doorPos.x] = 1
-             end
-            if self.buttonPos then
-                local btnLayer = self.buttonPos.layer
-                self.tileLayers[btnLayer][self.buttonPos.y][self.buttonPos.x] = self.buttonWasPressed and self.pressedButton or self.button
-            end
-
-            if not self.isDoorOpen and player.hasKey and self.doorPos then
-                if player.gridX == self.levelUpPos.x and player.gridY == self.levelUpPos.y then
-                    self.isDoorOpen = true
-                    self.tileLayers[self.doorPos.layer][self.doorPos.y][self.doorPos.x] = 0
-                    self.collisionMap[self.doorPos.y][self.doorPos.x] = 0
-                end
-            end
+            self.tileLayers[spike.layerIndex][spike.y][spike.x] = self.tileIDs['spike' .. spike.frame]
         end
 
         local p_tx, p_ty = player.gridX, player.gridY
-        if not player.isDead and self.tileLayers[3][p_ty] and self.tileLayers[3][p_ty][p_tx] == self.chasm then
-            player:die('pitfall')
-        end
-
-        if not player.isDead and not player.moving and self.levelUpPos and self.isDoorOpen then
+        -- if not player.isDead and self.tileLayers[3][p_ty] and self.tileLayers[3][p_ty][p_tx] == self.tileIDs.chasm then
+        --     player:die('pitfall')
+        -- end
+        
+        if not player.isDead and not player.moving and self.levelUpPos then
             if player.gridX == self.levelUpPos.x and player.gridY == self.levelUpPos.y then
-                return self.nextLevelKey
+                local canExit = player.hasKey or self.collisionMap[self.levelUpPos.y][self.levelUpPos.x] == 0
+                if canExit then
+                    return self.nextLevelKey
+                end
             end
         end
 
@@ -304,11 +359,10 @@ local function createLevel(tiledMapData, nextLevelKey)
             for y = 1, self.mapHeightInTiles do
                 for x = 1, self.mapWidthInTiles do
                     local tid = layer[y][x]
-                    if tid ~= 0 then
+                    if tid and tid ~= 0 then
                         local info = self.tileQuads[tid]
                         if info then
-                            love.graphics.draw(info.image, info.quad,
-                                (x - 1) * self.tileSize, (y - 1) * self.tileSize)
+                            love.graphics.draw(info.image, info.quad, (x - 1) * self.tileSize, (y - 1) * self.tileSize)
                         end
                     end
                 end
@@ -317,22 +371,9 @@ local function createLevel(tiledMapData, nextLevelKey)
 
         ghost:draw()
         player:draw()
-        -- enemy:draw()
         self.key:draw()
 
         love.graphics.pop()
-        local sw, sh = love.graphics.getDimensions()
-        local px, py = player.gridX, player.gridY
-        local currZ = (self.collisionMap[py] and self.collisionMap[py][px]) or 0
-        local dx, dy = 0, 0
-        if player.facingRow == 1 then dy = 1
-        elseif player.facingRow == 4 then dy = -1
-        elseif player.facingRow == 6 then dx = player.flipH and -1 or 1
-        end
-        local nx, ny = px + dx, py + dy
-        local nextZ = (self.collisionMap[ny] and self.collisionMap[ny][nx]) or 0
-        love.graphics.setColor(1, 1, 1, 1)
-        love.graphics.print('Curr Z: '..currZ..'  Next Z: '..nextZ, 10, sh - 20)
     end
 
     return level
