@@ -3,6 +3,7 @@ local mainMenu = {}
 local button = require 'src.ui.components.button'
 local label  = require 'src.ui.components.label'
 local Game   = require 'src.Game'
+local settings   = require 'src.settings'
 
 local menuMusic = nil  -- holds the music source
 
@@ -13,6 +14,7 @@ function mainMenu:enter(previous, ...)
   -- Load music if not already loaded
   if not menuMusic then
     menuMusic = love.audio.newSource("assets/main_menu.mp3", "stream")
+    menuMusic:setVolume(settings.musicVolume)
     menuMusic:setLooping(true)
   end
   love.audio.play(menuMusic)
@@ -32,8 +34,7 @@ function mainMenu:enter(previous, ...)
         text = 'Settings',
         width = 200,
         onClick = function()
-          local success = love.window.showMessageBox("Settings", "Not implemented", "info")
-          if success then print("Settings message box closed") end
+            roomy:push(require 'src.scenes.settingsMenu')
         end
       }
       + button {
@@ -86,6 +87,7 @@ end
 
 function mainMenu:resume(previous, ...)
   if menuMusic then
+    menuMusic:setVolume(settings.musicVolume)
     menuMusic:play()
   end
 end
