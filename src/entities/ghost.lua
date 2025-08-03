@@ -1,7 +1,10 @@
 local ghost = {
-    x = 0, y = 0,
-    gridX = 1, gridY = 1,
-    targetGridX = 1, targetGridY = 1,
+    x = 0,
+    y = 0,
+    gridX = 1,
+    gridY = 1,
+    targetGridX = 1,
+    targetGridY = 1,
 
     moving = false,
     moveTimer = 0,
@@ -10,10 +13,11 @@ local ghost = {
     idleImage = nil,
     walkImage = nil,
     quads = { idle = {}, run = {} },
-    width = 32, height = 32,
+    width = 32,
+    height = 32,
     drawScale = 1,
     flipH = false,
-    facingRow = 2,  -- 1=horizontal, 2=down, 3=up
+    facingRow = 2, -- 1=horizontal, 2=down, 3=up
 
     currentAnimation = 'idle',
     animationTimer = 0,
@@ -23,6 +27,8 @@ local ghost = {
 
     actions = nil,
     actionIndex = 1,
+    loopStartTime = 0, -- Remembers when the current loop started.
+    pathStartTime = 0,
     tileSize = 32,
     active = false,
     isFinished = false,
@@ -52,7 +58,8 @@ function ghost:load()
             for col = 1, IDLE_COLS do
                 local x = START_X + (col - 1) * STRIDE_X
                 local y = START_Y + (row - 1) * STRIDE_Y
-                self.quads.idle[row][col] = love.graphics.newQuad(x, y, FRAME_W, FRAME_H, self.idleImage:getWidth(), self.idleImage:getHeight())
+                self.quads.idle[row][col] = love.graphics.newQuad(x, y, FRAME_W, FRAME_H, self.idleImage:getWidth(),
+                    self.idleImage:getHeight())
             end
         end
     end
@@ -62,7 +69,8 @@ function ghost:load()
             for col = 1, WALK_COLS do
                 local x = START_X + (col - 1) * STRIDE_X
                 local y = START_Y + (row - 1) * STRIDE_Y
-                self.quads.run[row][col] = love.graphics.newQuad(x, y, FRAME_W, FRAME_H, self.walkImage:getWidth(), self.walkImage:getHeight())
+                self.quads.run[row][col] = love.graphics.newQuad(x, y, FRAME_W, FRAME_H, self.walkImage:getWidth(),
+                    self.walkImage:getHeight())
             end
         end
     end
@@ -76,11 +84,11 @@ function ghost:load()
         self.spawnEffect:setSpread(math.pi * 2)
         self.spawnEffect:setLinearAcceleration(0, 0, 0, 0)
         self.spawnEffect:setSizes(0.05, 0.02)
-        self.spawnEffect:setColors(1,1,1,1, 1,1,1,0)
+        self.spawnEffect:setColors(1, 1, 1, 1, 1, 1, 1, 0)
     end
 end
 
-function ghost:reset(initialGridX, initialGridY, tileSize, actionList)
+function ghost:reset(initialGridX, initialGridY, tileSize, actionList, currentGameTime)
     self.gridX = initialGridX
     self.gridY = initialGridY
     self.targetGridX = initialGridX
@@ -98,10 +106,13 @@ function ghost:reset(initialGridX, initialGridY, tileSize, actionList)
     self.isFinished = false
     self.facingRow = 2
 
+    self.loopStartTime = currentGameTime or 0
+
     if actionList and #actionList > 0 then
         self.actions = actionList
         self.actionIndex = 1
         self.active = true
+        -- self.pathStartTime = self.actions[1].time
     else
         self.actions = nil
         self.active = false
@@ -116,9 +127,9 @@ end
 
 function ghost:update(dt, gameTimer)
     if not self.active then return end
-
     local nextAction = self.actions[self.actionIndex]
-    if nextAction and gameTimer >= nextAction.time and not self.moving then
+
+    if nextAction and not self.moving and gameTimer >= self.loopStartTime + nextAction.time then
         if nextAction.type == 'move' then
             self.targetGridX = nextAction.targetGridX
             self.targetGridY = nextAction.targetGridY
@@ -135,8 +146,10 @@ function ghost:update(dt, gameTimer)
                 self.facingRow = 3; self.flipH = false
             end
         end
+
         self.actionIndex = self.actionIndex + 1
     end
+
 
     if not self.moving and not self.actions[self.actionIndex] then
         self.isFinished = true
@@ -189,11 +202,11 @@ function ghost:draw()
     local img = (mapType == 'idle') and self.idleImage or self.walkImage
     currentQuad = self.quads[mapType][row][self.currentFrame]
 
-    love.graphics.setColor(1,1,1,1)
+    love.graphics.setColor(1, 1, 1, 1)
     love.graphics.draw(img, currentQuad,
         self.x, self.y,
         rot, scaleX, self.drawScale,
-        FRAME_W/2, FRAME_H/2 + 4)
+        FRAME_W / 2, FRAME_H / 2 + 4)
     love.graphics.setColor(1, 1, 1, 1)
 
     if self.spawnEffect then
