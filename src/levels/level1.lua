@@ -13,6 +13,11 @@ return {
   nextlayerid = 10,
   nextobjectid = 1,
   properties = {},
+  hintDelay = 60,
+  hints = {
+      "The plate...?",
+      "Maybe someone could stand on the plate.",
+  },
   tilesets = {
     {
       name = "CosmicLilac_Tiles",

@@ -12,6 +12,10 @@ return {
   nextlayerid = 9,
   nextobjectid = 1,
   properties = {},
+  hints = {
+      "Nasty spikes...",
+      "Maybe I should move in time.",
+  },
   tilesets = {
     {
       name = "CosmicLilac_Tiles",

@@ -41,7 +41,17 @@ local function createLevel(tiledMapData, nextLevelKey)
         lastRunActions = nil,
         puzzleTargetID = nil, -- will be set once on load for level 3
 
-        isOkaytoSpawn = true
+        isOkaytoSpawn = true,
+
+        hintTimer = 0,
+        currentHintIndex = 1,
+        hintDisplayDuration = 10, -- seconds each hint is shown
+        hintDelayBeforeStart = 30, -- seconds before showing any hint
+        hasShownHint = false,
+        hintAlpha = 1,
+        hints = {},
+
+        font
     }
 
     function level:getProperty(props, name)
@@ -170,7 +180,13 @@ local function createLevel(tiledMapData, nextLevelKey)
             platePress = love.audio.newSource("assets/sfx/plate.mp3", "static")
         }
 
+        self.font = love.graphics.newFont("assets/font.ttf", 30)
+
         self:loadInteractionObjects()
+
+        self.hints = tiledMapData.hints or {}
+        self.hintDelayBeforeStart = tiledMapData.hintDelay or 30
+        self.hintDisplayDuration = tiledMapData.hintDuration or 10
 
         player:load()
         ghost:load()
@@ -324,7 +340,25 @@ local function createLevel(tiledMapData, nextLevelKey)
             self.isOkaytoSpawn = true
         end
 
-        if player:getIsReadyToRespawn() then 
+        if #self.hints > 0 then
+            self.hintTimer = self.hintTimer + dt
+
+            if self.hintTimer >= self.hintDelayBeforeStart then
+                self.hasShownHint = true
+
+                local elapsed = self.hintTimer - self.hintDelayBeforeStart
+                local index = math.floor(elapsed / self.hintDisplayDuration) + 1
+
+                if index <= #self.hints then
+                    self.currentHintIndex = index
+                    self.hintAlpha = 1
+                else
+                    self.hasShownHint = false -- optional: stop showing hints
+                end
+            end
+        end
+
+        if player:getIsReadyToRespawn() then
             if not HasShownGhostLore then
                 self.isOkaytoSpawn = false
             end
@@ -361,6 +395,16 @@ local function createLevel(tiledMapData, nextLevelKey)
         end
         if self.key then self.key:draw() end
         love.graphics.pop()
+
+        if self.hasShownHint and self.hintAlpha > 0 and #self.hints > 0 then
+            local hintText = self.hints[self.currentHintIndex]
+            if hintText then
+                love.graphics.setFont(self.font)
+                love.graphics.setColor(1, 1, 1, self.hintAlpha)
+                love.graphics.printf(hintText, 0, love.graphics.getHeight()/8 * 7 , love.graphics.getWidth(), "center")
+                love.graphics.setColor(1, 1, 1, 1)
+            end
+        end
     end
 
     return level
