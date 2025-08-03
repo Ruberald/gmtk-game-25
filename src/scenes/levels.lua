@@ -3,6 +3,8 @@ local level2Data = require 'src.levels.level2'
 local level3Data = require 'src.levels.level3'
 local level4Data = require 'src.levels.level4'
 local level5Data = require 'src.levels.level5'
+local level6Data = require 'src.levels.level6'
+local level7Data = require 'src.levels.level7'
 local player = require 'src.entities.player'
 local ghost = require 'src.entities.ghost'
 local enemy = require 'src.entities.enemy'
@@ -32,6 +34,9 @@ local function createLevel(tiledMapData, nextLevelKey, levelNumber)
         levelUpPos = nil,
         keyStartX = nil,
         keyStartY = nil,
+
+        enemyStartPositions = {},
+        enemies = {},
 
         scale = 1,
         offsetX = 0,
@@ -74,6 +79,7 @@ local function createLevel(tiledMapData, nextLevelKey, levelNumber)
         self.spikes = {}
         self.doors = {}
         self.buttons = {}
+        self.enemyStartPositions = {}
         self.levelUpPos = nil
         self.puzzleTargetID = nil 
 
@@ -116,6 +122,8 @@ local function createLevel(tiledMapData, nextLevelKey, levelNumber)
                     elseif objType == "keyStart" then
                         self.keyStartX = tileX
                         self.keyStartY = tileY
+                    elseif objType == "enemyStart" then
+                        table.insert(self.enemyStartPositions, {x = tileX, y = tileY})
                     end
                 end
             end
@@ -185,6 +193,16 @@ local function createLevel(tiledMapData, nextLevelKey, levelNumber)
 
         player:load()
         ghost:load()
+        -- spawn all enemies
+        self.enemies = {}
+        for _, pos in ipairs(self.enemyStartPositions) do
+            local e = {}
+            for k,v in pairs(enemy) do e[k] = v end
+            e:load()
+            e:reset(pos.x, pos.y, self.tileSize)
+            e.spawnX, e.spawnY = pos.x, pos.y
+            table.insert(self.enemies, e)
+        end
         if self.keyStartX and self.keyStartY then key:load(self.keyStartX, self.keyStartY, self.tileSize) self.key = key else self.key = nil end
         self.lastRunActions = nil
         ghost:reset(self.playerStartX, self.playerStartY, self.tileSize, nil)
@@ -196,9 +214,10 @@ local function createLevel(tiledMapData, nextLevelKey, levelNumber)
         self.gameTimer = 0
         self.currentRunActions = {}
 
-        -- enemy:reset(10, 10, self.tileSize)
-        -- key:reset()
-
+        -- reset entities
+        for _, e in ipairs(self.enemies) do
+            e:reset(e.spawnX, e.spawnY, self.tileSize)
+        end
         player:reset(self.playerStartX, self.playerStartY, self.tileSize)
         if self.lastRunActions then ghost:reset(self.playerStartX, self.playerStartY, self.tileSize, self.lastRunActions) end
         for _, plate in ipairs(self.plates) do
@@ -228,6 +247,7 @@ local function createLevel(tiledMapData, nextLevelKey, levelNumber)
         player:update(dt, self.collisionMap, self.tileSize, self.gameTimer, self.currentRunActions)
         ghost:update(dt, self.gameTimer)
         if self.key then self.key:update(player) end
+        for _, e in ipairs(self.enemies) do e:update(dt, player, ghost) end
 
         -- check for chasm spike tile collision
         for _, layer in ipairs(self.tileLayers) do
@@ -427,7 +447,7 @@ local function createLevel(tiledMapData, nextLevelKey, levelNumber)
 
         if not player.isDead and not player.moving and self.levelUpPos then
             if player.gridX == self.levelUpPos.x and player.gridY == self.levelUpPos.y then
-                if self.levelNumber == 3 or self.levelNumber == 4 then
+                if self.levelNumber == 3 or self.levelNumber == 4 or self.levelNumber == 5 or self.levelNumber == 6 then
                     return self.nextLevelKey
                 end
                 local mainDoorIsOpen = false
@@ -464,6 +484,7 @@ local function createLevel(tiledMapData, nextLevelKey, levelNumber)
         ghost:draw()
         player:draw()
         if self.key then self.key:draw() end
+        for _, e in ipairs(self.enemies) do e:draw() end
         love.graphics.pop()
     end
 
@@ -475,5 +496,7 @@ return {
     level2 = createLevel(level2Data, 'level3', 2),
     level3 = createLevel(level3Data, 'level4', 3),
     level4 = createLevel(level4Data, 'level5', 4),
-    level5 = createLevel(level5Data, nil, 5),
+    level5 = createLevel(level5Data, 'level6', 5),
+    level6 = createLevel(level6Data, 'level7', 6),
+    level7 = createLevel(level7Data, nil, 7),
 }

@@ -261,7 +261,7 @@ function player:update(dt, collisionMap, tileSize, gameTimer, actionsTable)
             self.facingRow = 6; self.flipH = false
             movedInput = true
         elseif love.keyboard.isDown('space') then
-            self:die('normal')
+            -- self:die('normal')
             return
         end
 
