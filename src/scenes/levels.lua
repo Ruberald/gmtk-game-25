@@ -5,6 +5,7 @@ local level4Data = require 'src.levels.level4'
 local level5Data = require 'src.levels.level5'
 local level6Data = require 'src.levels.level6'
 local level7Data = require 'src.levels.level7'
+local level8Data = require 'src.levels.level8'
 local player = require 'src.entities.player'
 local ghost = require 'src.entities.ghost'
 local enemy = require 'src.entities.enemy'
@@ -498,5 +499,6 @@ return {
     level4 = createLevel(level4Data, 'level5', 4),
     level5 = createLevel(level5Data, 'level6', 5),
     level6 = createLevel(level6Data, 'level7', 6),
-    level7 = createLevel(level7Data, nil, 7),
+    level7 = createLevel(level7Data, 'level8', 7),
+    level8 = createLevel(level8Data, nil, 8),
 }
