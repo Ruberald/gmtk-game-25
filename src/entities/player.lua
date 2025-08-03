@@ -4,7 +4,6 @@ local player = {
     targetGridX = 1, targetGridY = 1,
 
     currentZ = 0,
-    inPit = false,
 
     moving = false,
     moveTimer = 0,
@@ -129,7 +128,7 @@ end
 function player:reset(initialGridX, initialGridY, tileSize, initialZ)
     self.gridX = initialGridX
     self.gridY = initialGridY
-    self.currentZ = initialZ or 0
+    self.currentZ = initialZ
     self.targetGridX = initialGridX
     self.targetGridY = initialGridY
     self.x = (self.gridX - 1) * tileSize + (tileSize / 2)
@@ -178,7 +177,8 @@ function player:die(type)
     end
 end
 
-function player:update(dt, collisionMap, tileSize, gameTimer, actionsTable)
+function player:update(dt, collisionMap, tileSize, gameTimer, actionsTable, currentZ)
+    self.currentZ = currentZ
     if self.isDead then
         if self.isReadyToRespawn then return end
 
@@ -272,9 +272,7 @@ function player:update(dt, collisionMap, tileSize, gameTimer, actionsTable)
             if targetX >= 1 and targetX <= mapWidthInTiles and
                 targetY >= 1 and targetY <= mapHeightInTiles then
 
-                local cell = collisionMap[targetY][targetX]
-                -- allow stay on same Z, or enter pit from ground
-                if cell == self.currentZ or (cell == -1 and self.currentZ == 0) then
+                if collisionMap[targetY][targetX] == 0 then
                     self.targetGridX = targetX
                     self.targetGridY = targetY
                     self.moving = true
@@ -297,13 +295,6 @@ function player:update(dt, collisionMap, tileSize, gameTimer, actionsTable)
             self.currentFrame = 1
             self.animationTimer = 0
         end
-    end
-
-    local zcell = collisionMap[self.gridY] and collisionMap[self.gridY][self.gridX]
-    if zcell then
-        self.currentZ = zcell
-        self.inPit = (zcell == -1)
-        self.drawScale = self.initialDrawScale * (self.inPit and 0.8 or 1)
     end
 
     local cols = COLS
