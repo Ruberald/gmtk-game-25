@@ -102,10 +102,10 @@ end
 function love.keypressed(key, scancode, isRepeat)
     if key == 'escape' then
         local topScene = roomy._scenes[#roomy._scenes]
-        if topScene == scenes.mainMenu then
+        if topScene == scenes.pauseMenu then
             roomy:pop()
         else
-            roomy:push(scenes.mainMenu)
+            roomy:push(scenes.pauseMenu)
         end
     elseif not RELEASE and scancode == CONFIG.debug.key then
         DEBUG = not DEBUG

@@ -10,6 +10,11 @@ Game.currentLevel = levels.level2
 local track1, track2
 local currentTrack = 1
 
+function Game:enter(previous, ...)
+    local resetHistory = previous ~= Game
+    self:load(resetHistory)
+end
+
 function Game:load(resetHistory)
     if resetHistory then
         self.currentLevel.lastRunActions = nil

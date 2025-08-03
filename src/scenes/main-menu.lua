@@ -1,58 +1,47 @@
 local mainMenu = {}
-
 local button = require 'src.ui.components.button'
 local label  = require 'src.ui.components.label'
 local Game   = require 'src.Game'
-local settings   = require 'src.settings'
+local settingsMenu   = require 'src.scenes.settingsMenu'
+local credits   = require 'src.scenes.credits'
+local settings = require 'src.settings'
+local splash = require 'src.scenes.splash'
 
-local menuMusic = nil  -- holds the music source
+local music = nil
 
-function mainMenu:enter(previous, ...)
-    if Game.pause then
-        Game:pause()
-    end
-  -- Load music if not already loaded
-  if not menuMusic then
-    menuMusic = love.audio.newSource("assets/main_menu.mp3", "stream")
-    menuMusic:setVolume(settings.musicVolume)
-    menuMusic:setLooping(true)
+function mainMenu:enter()
+  if not music then
+    music = love.audio.newSource("assets/main_menu.mp3", "stream")
+    music:setLooping(true)
+    music:setVolume(settings.musicVolume)
   end
-  love.audio.play(menuMusic)
+  love.audio.play(music)
 
-  -- UI setup
   menu = badr { column = true, gap = 10 }
-      + label({ text = "Main Menu", width = 200 })
-      + button {
-        text = 'Reset Level',
+    + label({ text = "One More Loop", width = 200 })
+    + button {
+        text = "Start Game",
         width = 200,
         onClick = function()
-          Game:load(true)
-          roomy:pop()
+            roomy:enter(Game)
         end
       }
-      + button {
-        text = 'Settings',
+    + button {
+        text = "Settings",
         width = 200,
         onClick = function()
-            roomy:push(require 'src.scenes.settingsMenu')
+          roomy:push(settingsMenu)
         end
       }
-      + button {
-        text = 'Credits',
+    + button {
+        text = "Credits",
         width = 200,
         onClick = function()
-          roomy:push(scenes.credits)
+          roomy:push(credits)
         end
       }
-      + button {
-        text = 'Return',
-        width = 200,
-        onClick = function()
-          roomy:pop()
-        end
-      }
-      + button {
-        text = 'Quit',
+    + button {
+        text = "Quit",
         width = 200,
         onClick = function()
           love.event.quit()
@@ -66,34 +55,22 @@ function mainMenu:enter(previous, ...)
 end
 
 function mainMenu:update(dt)
-  menu:update()
-end
-
-function mainMenu:keypressed(key)
-  -- handle key input if needed
-end
-
-function mainMenu:leave(next, ...)
-  if menuMusic then
-    menuMusic:stop()
-  end
-end
-
-function mainMenu:pause(next, ...)
-  if menuMusic then
-    menuMusic:pause()
-  end
-end
-
-function mainMenu:resume(previous, ...)
-  if menuMusic then
-    menuMusic:setVolume(settings.musicVolume)
-    menuMusic:play()
-  end
+  menu:update(dt)
 end
 
 function mainMenu:draw()
-  menu:draw()
+    splash:draw()
+    -- Draw translucent background (black with 50% opacity)
+    love.graphics.setColor(0, 0, 0, 0.5)
+    love.graphics.rectangle("fill", 0, 0, love.graphics.getWidth(), love.graphics.getHeight())
+
+    -- Reset color and draw menu UI
+    love.graphics.setColor(1, 1, 1)
+    menu:draw()
+end
+
+function mainMenu:leave()
+  if music then music:stop() end
 end
 
 return mainMenu

@@ -59,10 +59,11 @@ scenes = {
   splash = require("src.scenes.splash"),
   credits = require("src.scenes.credits"),
   mainMenu = require("src.scenes.main-menu"),
+  pauseMenu = require("src.scenes.pause-menu"),
 }
 
 CONFIG = {
-  showSplash = false,
+  showSplash = true,
   joystick = love.joystick.getJoysticks()[1],
   deadzone = .33,
   graphics = {
