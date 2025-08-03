@@ -2,6 +2,7 @@ local level1Data = require 'src.levels.level1'
 local level2Data = require 'src.levels.level2'
 local level3Data = require 'src.levels.level3'
 local level4Data = require 'src.levels.level4'
+local level5Data = require 'src.levels.level5'
 local player = require 'src.entities.player'
 local ghost = require 'src.entities.ghost'
 local enemy = require 'src.entities.enemy'
@@ -227,6 +228,51 @@ local function createLevel(tiledMapData, nextLevelKey, levelNumber)
         player:update(dt, self.collisionMap, self.tileSize, self.gameTimer, self.currentRunActions)
         ghost:update(dt, self.gameTimer)
         if self.key then self.key:update(player) end
+
+        -- check for chasm spike tile collision
+        for _, layer in ipairs(self.tileLayers) do
+            local tid = layer[player.gridY][player.gridX]
+            if tid == self.tileIDs.chasmSpike1 or tid == self.tileIDs.chasmSpike2 then
+                if not player.isDead then
+                    if self.sounds.spikeKill then self.sounds.spikeKill:play() end
+                    player:die('normal')
+                end
+                break
+            end
+        end
+
+        local gx, gy = ghost.gridX, ghost.gridY
+        local ghostInPit = ghost.active and self.collisionMap[gy][gx] == -1
+        if ghostInPit and player.gridX == gx and player.gridY == gy
+           and gy > 2 and self.collisionMap[gy-1][gx] == -1 and self.collisionMap[gy-2][gx] == -1 then
+            player.gridY = gy - 1
+            player.x = (player.gridX - 1) * self.tileSize
+            player.y = (player.gridY - 1) * self.tileSize
+            local nextX = player.gridX + 1
+            if nextX <= self.mapWidthInTiles then
+                local cell = self.collisionMap[player.gridY][nextX]
+                if cell == 0 or cell == -1 then
+                    player.gridX = nextX
+                    player.x = (player.gridX - 1) * self.tileSize
+                    player.y = (player.gridY - 1) * self.tileSize
+                end
+            end
+        end
+        for _, layer in ipairs(self.tileLayers) do
+            local tidg = layer[gy][gx]
+            if tidg == self.tileIDs.chasmSpike1 or tidg == self.tileIDs.chasmSpike2 then
+                if ghost.active then
+                    ghost:reset(self.playerStartX, self.playerStartY, self.tileSize, self.lastRunActions)
+                    if ghostInPit and player.gridX == gx and player.gridY == gy - 1 then
+                        player.gridX = player.gridX + 1
+                        player.x = (player.gridX - 1) * self.tileSize
+                        player.y = (player.gridY - 1) * self.tileSize
+                    end
+                end
+                break
+            end
+        end
+
         self.shinyTimer = self.shinyTimer + dt
         if self.shinyTimer >= self.nextShinySwitch then
             self.shinyTimer = self.shinyTimer - self.nextShinySwitch
@@ -351,7 +397,7 @@ local function createLevel(tiledMapData, nextLevelKey, levelNumber)
                     if spike.timer >= interval then
                         spike.timer = spike.timer - interval
                         spike.frame = spike.frame + 1
-                    end
+                      end
                 end
             elseif spike.isActive then
                 -- normal spike animation
@@ -428,5 +474,6 @@ return {
     level1 = createLevel(level1Data, 'level2', 1),
     level2 = createLevel(level2Data, 'level3', 2),
     level3 = createLevel(level3Data, 'level4', 3),
-    level4 = createLevel(level4Data, nil, 4)
+    level4 = createLevel(level4Data, 'level5', 4),
+    level5 = createLevel(level5Data, nil, 5),
 }
