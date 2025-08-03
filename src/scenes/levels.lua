@@ -565,6 +565,5 @@ return {
     level4 = createLevel(level4Data, 'level5', 4),
     level5 = createLevel(level5Data, 'level6', 5),
     level6 = createLevel(level6Data, 'level7', 6),
-    level7 = createLevel(level7Data, 'level8', 7),
-    level8 = createLevel(level8Data, nil, 8),
+    level7 = createLevel(level7Data, 'end', 7),
 }
