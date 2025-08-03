@@ -55,6 +55,11 @@ lume = require("lib.lume")
 -- @see https://github.com/deltadaedalus/vudu
 -- vudu = require("lib.vudu")
 
+HasPlayerDiedOnce = false
+HasGhostDiedOnce = false
+HasShownDeathLore = false
+HasShownGhostLore = false
+
 scenes = {
   splash = require("src.scenes.splash"),
   credits = require("src.scenes.credits"),

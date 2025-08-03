@@ -19,12 +19,15 @@ function pauseMenu:enter(previous, ...)
   end
   love.audio.play(menuMusic)
 
+  local hintFont = love.graphics.newFont("assets/font.ttf", 20)
+
   -- UI setup
   menu = badr { column = true, gap = 10 }
       + label({ text = "Main Menu", width = 200 })
       + button {
         text = 'Reset Level',
         width = 200,
+        font = hintFont,
         onClick = function()
           Game:load(true)
           roomy:pop()
@@ -33,6 +36,7 @@ function pauseMenu:enter(previous, ...)
       + button {
         text = 'Settings',
         width = 200,
+        font = hintFont,
         onClick = function()
             roomy:push(require 'src.scenes.settingsMenu')
         end
@@ -40,6 +44,7 @@ function pauseMenu:enter(previous, ...)
       + button {
         text = 'Credits',
         width = 200,
+        font = hintFont,
         onClick = function()
           roomy:push(scenes.credits)
         end
@@ -47,6 +52,7 @@ function pauseMenu:enter(previous, ...)
       + button {
         text = 'Return',
         width = 200,
+        font = hintFont,
         onClick = function()
           roomy:pop()
         end
@@ -54,6 +60,7 @@ function pauseMenu:enter(previous, ...)
       + button {
         text = 'Quit',
         width = 200,
+        font = hintFont,
         onClick = function()
           love.event.quit()
         end

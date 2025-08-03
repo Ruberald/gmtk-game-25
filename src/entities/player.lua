@@ -190,6 +190,7 @@ function player:update(dt, collisionMap, tileSize, gameTimer, actionsTable, curr
                 if self.currentFrame > COLS then
                     self.currentFrame = COLS
                     self.isReadyToRespawn = true
+                    HasPlayerDiedOnce = true
                 end
             end
         elseif self.deathType == 'pitfall' then
@@ -205,6 +206,7 @@ function player:update(dt, collisionMap, tileSize, gameTimer, actionsTable, curr
 
             if progress >= 1 then
                 self.isReadyToRespawn = true
+                HasPlayerDiedOnce = true
             end
         end
         return self.currentZ

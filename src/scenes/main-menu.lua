@@ -17,11 +17,14 @@ function mainMenu:enter()
   end
   love.audio.play(music)
 
+  local hintFont = love.graphics.newFont("assets/font.ttf", 20)
+
   menu = badr { column = true, gap = 10 }
     + label({ text = "One More Loop", width = 200 })
     + button {
         text = "Start Game",
         width = 200,
+        font = hintFont,
         onClick = function()
             roomy:enter(Game)
         end
@@ -29,6 +32,7 @@ function mainMenu:enter()
     + button {
         text = "Settings",
         width = 200,
+        font = hintFont,
         onClick = function()
           roomy:push(settingsMenu)
         end
@@ -36,6 +40,7 @@ function mainMenu:enter()
     + button {
         text = "Credits",
         width = 200,
+        font = hintFont,
         onClick = function()
           roomy:push(credits)
         end
@@ -43,6 +48,7 @@ function mainMenu:enter()
     + button {
         text = "Quit",
         width = 200,
+        font = hintFont,
         onClick = function()
           love.event.quit()
         end

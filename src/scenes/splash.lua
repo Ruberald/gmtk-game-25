@@ -17,7 +17,7 @@ local isAnimating = false
 function splash:enter(previous, ...)
   love.graphics.setBackgroundColor(colors.black)
 
-  font = love.graphics.newFont(24)
+  font = love.graphics.newFont("assets/font.ttf", 60)
   love.graphics.setFont(font)
 
   screenWidth, screenHeight = love.graphics.getWidth(), love.graphics.getHeight()
@@ -88,7 +88,7 @@ end
 function splash:draw()
   local scaleX = screenWidth / frameWidth
   local scaleY = screenHeight / frameHeight
-  local scale = math.min(scaleX, scaleY)
+  local scale = math.max(scaleX, scaleY)
 
   local drawWidth = frameWidth * scale
   local drawHeight = frameHeight * scale
@@ -101,6 +101,20 @@ function splash:draw()
   if spriteSheet and quad then
     love.graphics.draw(spriteSheet, quad, x, y, 0, scale, scale)
   end
+
+  if not isAnimating then
+      local hint = "Press any key to start"
+      love.graphics.setFont(font)
+      love.graphics.setColor(1, 1, 1, 0.7) -- slight transparency
+
+      local textWidth = font:getWidth(hint)
+      local fx = (screenWidth - textWidth) / 2
+      local fy = screenHeight - 80
+
+      love.graphics.print(hint, fx, fy)
+      love.graphics.setColor(1, 1, 1, 1) -- reset
+  end
+
 end
 
 return splash

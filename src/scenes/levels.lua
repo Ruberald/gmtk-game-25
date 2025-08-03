@@ -14,7 +14,7 @@ local function createLevel(tiledMapData, nextLevelKey)
         mapHeightInTiles = tiledMapData.height,
         tileSize = tiledMapData.tilewidth,
         nextLevelKey = nextLevelKey,
-        isLevel3 = (nextLevelKey == 'level4'), 
+        isLevel3 = (nextLevelKey == 'level4'),
 
         playerStartX = 8,
         playerStartY = 6,
@@ -22,7 +22,7 @@ local function createLevel(tiledMapData, nextLevelKey)
         tileQuads = {},
         tileLayers = {},
         collisionMap = {},
-        tileIDs = {}, 
+        tileIDs = {},
 
         plates = {},
         spikes = {},
@@ -40,6 +40,8 @@ local function createLevel(tiledMapData, nextLevelKey)
         currentRunActions = {},
         lastRunActions = nil,
         puzzleTargetID = nil, -- will be set once on load for level 3
+
+        isOkaytoSpawn = true
     }
 
     function level:getProperty(props, name)
@@ -74,7 +76,7 @@ local function createLevel(tiledMapData, nextLevelKey)
         self.doors = {}
         self.buttons = {}
         self.levelUpPos = nil
-        self.puzzleTargetID = nil 
+        self.puzzleTargetID = nil
 
         for _, layer in ipairs(tiledMapData.layers) do
             if layer.type == "objectgroup" and layer.name == "Interactions" then
@@ -82,7 +84,7 @@ local function createLevel(tiledMapData, nextLevelKey)
                     local objType = self:getProperty(obj.properties, "type")
                     local tileX = math.floor(obj.x / self.tileSize) + 1
                     local tileY = math.floor(obj.y / self.tileSize) + 1
-                    
+
                     if objType == "plate" then
                         table.insert(self.plates, { x = tileX, y = tileY, targets = self:getProperty(obj.properties, "targets"), isPressed = false, layerIndex = 4, timer = nil, wasOnPlate = false })
                     elseif objType == "spike" then
@@ -187,7 +189,9 @@ local function createLevel(tiledMapData, nextLevelKey)
         -- key:reset()
 
         player:reset(self.playerStartX, self.playerStartY, self.tileSize)
-        if self.lastRunActions then ghost:reset(self.playerStartX, self.playerStartY, self.tileSize, self.lastRunActions) end
+        if self.lastRunActions then
+            ghost:reset(self.playerStartX, self.playerStartY, self.tileSize, self.lastRunActions)
+        end
         for _, plate in ipairs(self.plates) do
             plate.isPressed = false
             plate.timer = nil
@@ -294,7 +298,10 @@ local function createLevel(tiledMapData, nextLevelKey)
                     if self.sounds.spikeKill then self.sounds.spikeKill:play() end
                     player:die('normal') 
                 end
-                if ghost.active and ghost.gridX == spike.x and ghost.gridY == spike.y then ghost:reset(self.playerStartX, self.playerStartY, self.tileSize, self.lastRunActions) end
+                if ghost.active and ghost.gridX == spike.x and ghost.gridY == spike.y then 
+                    HasGhostDiedOnce = true
+                    ghost:reset(self.playerStartX, self.playerStartY, self.tileSize, self.lastRunActions) 
+                end
             end
             
             if self.tileIDs['spike' .. spike.frame] then
@@ -309,7 +316,20 @@ local function createLevel(tiledMapData, nextLevelKey)
                 if (self.key and player.hasKey) or mainDoorIsOpen then return self.nextLevelKey end
             end
         end
-        if player:getIsReadyToRespawn() then self:startNewRun() end
+
+        if HasShownDeathLore and not HasShownGhostLore then
+            self.isOkaytoSpawn = false
+        end
+        if not HasShownDeathLore or HasShownGhostLore then
+            self.isOkaytoSpawn = true
+        end
+
+        if player:getIsReadyToRespawn() then 
+            if not HasShownGhostLore then
+                self.isOkaytoSpawn = false
+            end
+            self:startNewRun()
+        end
     end
 
     function level:draw()
@@ -336,7 +356,9 @@ local function createLevel(tiledMapData, nextLevelKey)
             end
         end
         ghost:draw()
-        player:draw()
+        if self.isOkaytoSpawn then
+            player:draw()
+        end
         if self.key then self.key:draw() end
         love.graphics.pop()
     end

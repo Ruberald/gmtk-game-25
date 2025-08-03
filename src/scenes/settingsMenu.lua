@@ -22,12 +22,15 @@ function settingsMenu:enter(previous)
     end
   end
 
+  local hintFont = love.graphics.newFont("assets/font.ttf", 20)
+
   menu = menu
     + label({ text = "Settings", width = 200 })
     + musicVolumeLabel
     + button {
         text = "Volume -",
         width = 95,
+        font = hintFont,
         onClick = function()
           settings.musicVolume = math.max(0, settings.musicVolume - 0.1)
           updateVolumeLabel()
@@ -36,6 +39,7 @@ function settingsMenu:enter(previous)
     + button {
         text = "Volume +",
         width = 95,
+        font = hintFont,
         onClick = function()
           settings.musicVolume = math.min(1, settings.musicVolume + 0.1)
           updateVolumeLabel()
@@ -44,6 +48,7 @@ function settingsMenu:enter(previous)
     + button {
         text = love.window.getFullscreen() and "Fullscreen: On" or "Fullscreen: Off",
         width = 200,
+        font = hintFont,
         onClick = function(self)
           local newValue = not love.window.getFullscreen()
           love.window.setFullscreen(newValue)
@@ -53,6 +58,7 @@ function settingsMenu:enter(previous)
     + button {
         text = "Back",
         width = 200,
+        font = hintFont,
         onClick = function()
           roomy:pop()
         end
