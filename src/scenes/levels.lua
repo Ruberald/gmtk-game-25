@@ -185,7 +185,8 @@ local function createLevel(tiledMapData, nextLevelKey)
         self.sounds = {
             doorOpen = love.audio.newSource("assets/sfx/door.mp3", "static"),
             spikeKill = love.audio.newSource("assets/sfx/spike.mp3", "static"),
-            platePress = love.audio.newSource("assets/sfx/plate.mp3", "static")
+            platePress = love.audio.newSource("assets/sfx/plate.mp3", "static"),
+            buttonPress = love.audio.newSource("assets/sfx/button.mp3", "static")
         }
 
         self:loadInteractionObjects()
@@ -203,12 +204,37 @@ local function createLevel(tiledMapData, nextLevelKey)
         self:startNewRun()
     end
 
-    function level:resetSpikes()
+    -- function level:resetSpikes()
+    --     for _, spike in ipairs(self.spikes) do
+    --         spike.isActive = true
+    --         spike.frame = 1
+    --         spike.timer = 0
+    --         spike.direction = 1
+    --     end
+    -- end
+
+    function level:resetSpikes(resetType)
+        resetType = resetType or 'all'
+
         for _, spike in ipairs(self.spikes) do
-            spike.isActive = true
-            spike.frame = 1
-            spike.timer = 0
-            spike.direction = 1
+            local shouldReset = false
+
+            if resetType == 'all' then
+                shouldReset = true
+            elseif resetType == 'periodic' then
+                if self.isLevel3 and spike.id ~= self.puzzleTargetID then
+                    shouldReset = true
+                elseif not self.isLevel3 then
+                    shouldReset = true
+                end
+            end
+
+            if shouldReset then
+                spike.isActive = true
+                spike.frame = 1
+                spike.timer = 0
+                spike.direction = 1
+            end
         end
     end
 
@@ -239,7 +265,7 @@ local function createLevel(tiledMapData, nextLevelKey)
                 self:setTargetsActive(button.targets, false)
             end
         end
-        self:resetSpikes()
+        self:resetSpikes('all')
     end
 
     function level:update(dt)
@@ -276,17 +302,48 @@ local function createLevel(tiledMapData, nextLevelKey)
         end
 
         if self.isLevel3 then
-            local button1_pressed, button2_pressed = false, false
-            for _, button in ipairs(self.buttons) do
-                local onButton = (player.gridX == button.x and player.gridY == button.y) or
-                    (ghost.active and ghost.gridX == button.x and ghost.gridY == button.y)
-                if onButton then
-                    if button.puzzle_role == "dual_1" then button1_pressed = true end
-                    if button.puzzle_role == "dual_2" then button2_pressed = true end
+            if not self.puzzleSolved then
+                local button1_pressed, button2_pressed = false, false
+                for _, button in ipairs(self.buttons) do
+                    if button.puzzle_role == "dual_1" then
+                        if (player.gridX == button.x and player.gridY == button.y) or
+                            (ghost.active and ghost.gridX == button.x and ghost.gridY == button.y) then
+                            button1_pressed = true
+                        end
+                    elseif button.puzzle_role == "dual_2" then
+                        if (player.gridX == button.x and player.gridY == button.y) or
+                            (ghost.active and ghost.gridX == button.x and ghost.gridY == button.y) then
+                            button2_pressed = true
+                        end
+                    end
                 end
-            end
-            if button1_pressed and button2_pressed then
-                self:setTargetsActive(self.puzzleTargetID, false)
+                if button1_pressed and button2_pressed then
+                    self.puzzleSolved = true
+                    self:setTargetsActive(self.puzzleTargetID, false)
+                    for _, button in ipairs(self.buttons) do
+                        if button.puzzle_role then
+                            self.tileLayers[button.layerIndex][button.y][button.x] = self.tileIDs.pressedButton
+                        end
+                    end
+                else
+                    self:setTargetsActive(self.puzzleTargetID, true)
+
+                    for _, button in ipairs(self.buttons) do
+                        if button.puzzle_role == "dual_1" then
+                            local tile = button1_pressed and self.tileIDs.halfPressedButton or self.tileIDs.button
+                            if self.tileLayers[button.layerIndex][button.y][button.x] ~= tile then
+                                if self.sounds.buttonPress then self.sounds.buttonPress:play() end
+                            end
+                            self.tileLayers[button.layerIndex][button.y][button.x] = tile
+                        elseif button.puzzle_role == "dual_2" then
+                            local tile = button2_pressed and self.tileIDs.halfPressedButton or self.tileIDs.button
+                            if self.tileLayers[button.layerIndex][button.y][button.x] ~= tile then
+                                if self.sounds.buttonPress then self.sounds.buttonPress:play() end
+                            end
+                            self.tileLayers[button.layerIndex][button.y][button.x] = tile
+                        end
+                    end
+                end
             end
         else
             for _, button in ipairs(self.buttons) do
@@ -294,6 +351,7 @@ local function createLevel(tiledMapData, nextLevelKey)
                     local onButton = (player.gridX == button.x and player.gridY == button.y) or
                         (ghost.active and ghost.gridX == button.x and ghost.gridY == button.y)
                     if onButton then
+                        if self.sounds.buttonPress then self.sounds.buttonPress:play() end
                         button.wasPressed = true
                         self:setTargetsActive(button.targets, true)
                         self.tileLayers[button.layerIndex][button.y][button.x] = self.tileIDs.pressedButton
@@ -332,7 +390,7 @@ local function createLevel(tiledMapData, nextLevelKey)
                 if ghost.active and ghost.gridX == spike.x and ghost.gridY == spike.y then
                     ghost:reset(self.playerStartX,
                         self.playerStartY, self.tileSize, self.lastRunActions, self.gameTimer)
-                    self:resetSpikes()
+                    self:resetSpikes('periodic')
                 end
             end
 
