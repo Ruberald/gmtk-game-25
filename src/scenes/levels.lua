@@ -257,14 +257,31 @@ local function createLevel(tiledMapData, nextLevelKey)
             plate.wasOnPlate = false
             self:setTargetsActive(plate.targets, false)
         end
+        self.puzzleSolved = false
+        -- for _, button in ipairs(self.buttons) do
+        --     button.wasPressed = false
+        --     if self.isLevel3 then
+        --         self:setTargetsActive(button.targets, true)
+        --     else
+        --         self:setTargetsActive(button.targets, false)
+        --     end
+        -- end
         for _, button in ipairs(self.buttons) do
+            -- This handles buttons on non-puzzle levels.
             button.wasPressed = false
-            if self.isLevel3 then
-                self:setTargetsActive(button.targets, true)
-            else
+            if self.tileIDs.button then
+                self.tileLayers[button.layerIndex][button.y][button.x] = self.tileIDs.button
+            end
+        end
+
+        if self.isLevel3 then
+            self:setTargetsActive(self.puzzleTargetID, true)
+        else
+            for _, button in ipairs(self.buttons) do
                 self:setTargetsActive(button.targets, false)
             end
         end
+
         self:resetSpikes('all')
     end
 
