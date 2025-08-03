@@ -93,7 +93,7 @@ CONFIG = {
     fullscreen = false, 
     resizable = true,  
     vsync = true,      
-    title = "OneLessLoop"
+    title = "OneMoreLoop"
   },
 
   debug = {

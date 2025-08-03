@@ -22,7 +22,7 @@ local enemy = {
     animationTimer = 0,
 
     triggered = false,
-    triggerDistance = 3,
+    triggerDistance = 4,
 
     target = nil,
 }
