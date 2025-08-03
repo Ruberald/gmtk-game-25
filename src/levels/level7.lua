@@ -12,6 +12,12 @@ return {
   nextlayerid = 8,
   nextobjectid = 1,
   properties = {},
+  hintDelay = 10,
+  hintDuration = 30,
+  hints = {
+      "Getting the key seems crucial.",
+      "Gotta send them chasing",
+  },
   tilesets = {
     {
       name = "CosmicLilac_Tiles",

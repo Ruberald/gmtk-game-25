@@ -56,7 +56,7 @@ lume = require("lib.lume")
 -- vudu = require("lib.vudu")
 
 HasPlayerDiedOnce = false
-HasGhostDiedOnce = false
+HasGhostDiedOnce =  false
 HasShownDeathLore = false
 HasShownGhostLore = false
 
@@ -93,7 +93,7 @@ CONFIG = {
     fullscreen = false, 
     resizable = true,  
     vsync = true,      
-    title = "OneLessLoop"
+    title = "OneMoreLoop"
   },
 
   debug = {

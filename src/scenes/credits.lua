@@ -12,7 +12,7 @@ function credits:enter(previous, ...)
   -- set up the level
   love.graphics.setBackgroundColor(colors.rgbForGraphics(colors.Gray700))
 
-  font = love.graphics.newFont(24)
+  font = love.graphics.newFont("assets/font.ttf", 36)
   love.graphics.setFont(font)
 
   -- Store screen dimensions
@@ -63,9 +63,23 @@ function credits:draw()
     roomy:push(scenes.mainMenu)
   end)
 
+  love.graphics.setFont(font)
   -- Print centered text
   love.graphics.printf(
-    "Credits",
+    [[
+    CREDITS
+
+    Programming -   Devansh
+    Narrative / Level Design -  Sajid
+    Art & Layout Design - Naman
+    Title Art - Tanim
+    Music / Sound design - Samaksh
+
+    And
+
+    Thanks to YOU
+    For playing our game
+    ]],
     0, startingPosition.y - font:getHeight() / 2,
     screenWidth, "center"
   )

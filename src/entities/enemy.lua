@@ -24,6 +24,7 @@ local enemy = {
     triggered = false,
     triggerDistance = 5,
 
+
     target = nil,
 }
 

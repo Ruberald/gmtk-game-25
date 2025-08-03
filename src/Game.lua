@@ -69,11 +69,17 @@ function Game:update(dt)
         end
     end
 
+    -- Update level
     local nextLevelKey = self.currentLevel:update(dt)
     if nextLevelKey then
+        if nextLevelKey == "end" then
+            roomy:push(require 'src.scenes.finalLore')  -- push final lore scene
+            return
+        end
         self.currentLevel = levels[nextLevelKey]
         self.currentLevel:load()
     end
+
     -- Load music now if transitioning out of level1 and music not yet loaded
     if not track1 and HasShownGhostLore then
         track1 = love.audio.newSource("assets/levels1.mp3", "stream")
