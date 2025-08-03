@@ -59,9 +59,11 @@ function Game:update(dt)
     -- Music switching logic
     if track1 and track2 then
         if currentTrack == 1 and not track1:isPlaying() then
+            track2:setVolume(settings.musicVolume)
             track2:play()
             currentTrack = 2
         elseif currentTrack == 2 and not track2:isPlaying() then
+            track1:setVolume(settings.musicVolume)
             track1:play()
             currentTrack = 1
         end

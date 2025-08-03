@@ -15,6 +15,10 @@ local TILE_DEFS = {
 
     shinyStar1 = { tileset = "shiny_star", localId = 0 },
     shinyStar2 = { tileset = "shiny_star", localId = 1 },
+    
+    chasmSpike1 = { tileset = "chasm-tiles", localId = 13},
+    chasmSpike2 = { tileset = "chasm-tiles", localId = 14},
+
 }
 
 return TILE_DEFS

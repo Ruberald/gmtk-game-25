@@ -2,19 +2,23 @@ local level1Data = require 'src.levels.level1'
 local level2Data = require 'src.levels.level2'
 local level3Data = require 'src.levels.level3'
 local level4Data = require 'src.levels.level4'
+local level5Data = require 'src.levels.level5'
+local level6Data = require 'src.levels.level6'
+local level7Data = require 'src.levels.level7'
+local level8Data = require 'src.levels.level8'
 local player = require 'src.entities.player'
 local ghost = require 'src.entities.ghost'
 local enemy = require 'src.entities.enemy'
 local key = require 'src.entities.key'
 local TILE_DEFS = require 'src.levels.tile_definition'
 
-local function createLevel(tiledMapData, nextLevelKey)
+local function createLevel(tiledMapData, nextLevelKey, levelNumber)
     local level = {
         mapWidthInTiles = tiledMapData.width,
         mapHeightInTiles = tiledMapData.height,
         tileSize = tiledMapData.tilewidth,
         nextLevelKey = nextLevelKey,
-        isLevel3 = (nextLevelKey == 'level4'),
+        levelNumber = levelNumber,
 
         playerStartX = 8,
         playerStartY = 6,
@@ -31,6 +35,9 @@ local function createLevel(tiledMapData, nextLevelKey)
         levelUpPos = nil,
         keyStartX = nil,
         keyStartY = nil,
+
+        enemyStartPositions = {},
+        enemies = {},
 
         scale = 1,
         offsetX = 0,
@@ -85,6 +92,7 @@ local function createLevel(tiledMapData, nextLevelKey)
         self.spikes = {}
         self.doors = {}
         self.buttons = {}
+        self.enemyStartPositions = {}
         self.levelUpPos = nil
         self.puzzleTargetID = nil
 
@@ -98,13 +106,25 @@ local function createLevel(tiledMapData, nextLevelKey)
                     if objType == "plate" then
                         table.insert(self.plates, { x = tileX, y = tileY, targets = self:getProperty(obj.properties, "targets"), isPressed = false, layerIndex = 4, timer = nil, wasOnPlate = false })
                     elseif objType == "spike" then
-                        table.insert(self.spikes, { x = tileX, y = tileY, id = self:getProperty(obj.properties, "id"), isActive = true, layerIndex = 4, frame = 1, timer = 0, direction = 1 })
+                        local id = self:getProperty(obj.properties, "id")
+                        local alwaysOn = self:getProperty(obj.properties, "alwaysOn") or false
+                        table.insert(self.spikes, {
+                            x = tileX,
+                            y = tileY,
+                            id = id,
+                            isActive = true,
+                            alwaysOn = alwaysOn,
+                            layerIndex = 4,
+                            frame = 1,
+                            timer = 0,
+                            direction = 1
+                        })
                     elseif objType == "door" then
                         table.insert(self.doors, { x = tileX, y = tileY, id = self:getProperty(obj.properties, "id"), isOpen = false, layerIndex = 3 })
                     elseif objType == "button" then
                         local button = { x = tileX, y = tileY, targets = self:getProperty(obj.properties, "targets"), wasPressed = false, layerIndex = 4, puzzle_role = self:getProperty(obj.properties, "puzzle_role") }
                         table.insert(self.buttons, button)
-                        if self.isLevel3 and button.puzzle_role then
+                        if self.levelNumber == 3 and button.puzzle_role then
                             self.puzzleTargetID = button.targets
                         end
                     elseif objType == "levelUp" then
@@ -115,6 +135,8 @@ local function createLevel(tiledMapData, nextLevelKey)
                     elseif objType == "keyStart" then
                         self.keyStartX = tileX
                         self.keyStartY = tileY
+                    elseif objType == "enemyStart" then
+                        table.insert(self.enemyStartPositions, {x = tileX, y = tileY})
                     end
                 end
             end
@@ -123,7 +145,7 @@ local function createLevel(tiledMapData, nextLevelKey)
 
     function level:setTargetsActive(targetID, isActive)
         for _, spike in ipairs(self.spikes) do
-            if spike.id == targetID then
+            if spike.id == targetID and not spike.alwaysOn then
                 spike.isActive = isActive
             end
         end
@@ -190,6 +212,16 @@ local function createLevel(tiledMapData, nextLevelKey)
 
         player:load()
         ghost:load()
+        -- spawn all enemies
+        self.enemies = {}
+        for _, pos in ipairs(self.enemyStartPositions) do
+            local e = {}
+            for k,v in pairs(enemy) do e[k] = v end
+            e:load()
+            e:reset(pos.x, pos.y, self.tileSize)
+            e.spawnX, e.spawnY = pos.x, pos.y
+            table.insert(self.enemies, e)
+        end
         if self.keyStartX and self.keyStartY then key:load(self.keyStartX, self.keyStartY, self.tileSize) self.key = key else self.key = nil end
         self.lastRunActions = nil
         ghost:reset(self.playerStartX, self.playerStartY, self.tileSize, nil)
@@ -201,9 +233,10 @@ local function createLevel(tiledMapData, nextLevelKey)
         self.gameTimer = 0
         self.currentRunActions = {}
 
-        -- enemy:reset(10, 10, self.tileSize)
-        -- key:reset()
-
+        -- reset entities
+        for _, e in ipairs(self.enemies) do
+            e:reset(e.spawnX, e.spawnY, self.tileSize)
+        end
         player:reset(self.playerStartX, self.playerStartY, self.tileSize)
         if self.lastRunActions then
             ghost:reset(self.playerStartX, self.playerStartY, self.tileSize, self.lastRunActions)
@@ -216,7 +249,7 @@ local function createLevel(tiledMapData, nextLevelKey)
         end
         for _, button in ipairs(self.buttons) do
             button.wasPressed = false
-            if self.isLevel3 then
+            if self.levelNumber == 3 then
                 self:setTargetsActive(button.targets, true)
             else
                 self:setTargetsActive(button.targets, false)
@@ -235,6 +268,52 @@ local function createLevel(tiledMapData, nextLevelKey)
         player:update(dt, self.collisionMap, self.tileSize, self.gameTimer, self.currentRunActions)
         ghost:update(dt, self.gameTimer)
         if self.key then self.key:update(player) end
+        for _, e in ipairs(self.enemies) do e:update(dt, player, ghost) end
+
+        -- check for chasm spike tile collision
+        for _, layer in ipairs(self.tileLayers) do
+            local tid = layer[player.gridY][player.gridX]
+            if tid == self.tileIDs.chasmSpike1 or tid == self.tileIDs.chasmSpike2 then
+                if not player.isDead then
+                    if self.sounds.spikeKill then self.sounds.spikeKill:play() end
+                    player:die('normal')
+                end
+                break
+            end
+        end
+
+        local gx, gy = ghost.gridX, ghost.gridY
+        local ghostInPit = ghost.active and self.collisionMap[gy][gx] == -1
+        if ghostInPit and player.gridX == gx and player.gridY == gy
+           and gy > 2 and self.collisionMap[gy-1][gx] == -1 and self.collisionMap[gy-2][gx] == -1 then
+            player.gridY = gy - 1
+            player.x = (player.gridX - 1) * self.tileSize
+            player.y = (player.gridY - 1) * self.tileSize
+            local nextX = player.gridX + 1
+            if nextX <= self.mapWidthInTiles then
+                local cell = self.collisionMap[player.gridY][nextX]
+                if cell == 0 or cell == -1 then
+                    player.gridX = nextX
+                    player.x = (player.gridX - 1) * self.tileSize
+                    player.y = (player.gridY - 1) * self.tileSize
+                end
+            end
+        end
+        for _, layer in ipairs(self.tileLayers) do
+            local tidg = layer[gy][gx]
+            if tidg == self.tileIDs.chasmSpike1 or tidg == self.tileIDs.chasmSpike2 then
+                if ghost.active then
+                    ghost:reset(self.playerStartX, self.playerStartY, self.tileSize, self.lastRunActions)
+                    if ghostInPit and player.gridX == gx and player.gridY == gy - 1 then
+                        player.gridX = player.gridX + 1
+                        player.x = (player.gridX - 1) * self.tileSize
+                        player.y = (player.gridY - 1) * self.tileSize
+                    end
+                end
+                break
+            end
+        end
+
         self.shinyTimer = self.shinyTimer + dt
         if self.shinyTimer >= self.nextShinySwitch then
             self.shinyTimer = self.shinyTimer - self.nextShinySwitch
@@ -246,15 +325,49 @@ local function createLevel(tiledMapData, nextLevelKey)
             if onPlate and not plate.isPressed and not plate.wasOnPlate then
                 if self.sounds.platePress then self.sounds.platePress:play() end
                 plate.isPressed = true
-                plate.timer = 1
-                self:setTargetsActive(plate.targets, true)
+                -- determine duration based on target type
+                do
+                    local targetID = plate.targets
+                    local hasSpike = false
+                    for _, sp in ipairs(self.spikes) do if sp.id == targetID then hasSpike = true break end end
+                    plate.timer = hasSpike and 1.5 or 0.8
+                    if hasSpike then
+                        -- temporarily disable spikes (even alwaysOn)
+                        for _, sp in ipairs(self.spikes) do
+                            if sp.id == targetID then
+                                sp.isActive = false
+                                sp.frame = 1
+                            end
+                        end
+                    else
+                        self:setTargetsActive(targetID, true)
+                    end
+                end
             end
             if plate.isPressed and plate.timer then
                 plate.timer = plate.timer - dt
                 if plate.timer <= 0 then
                     plate.isPressed = false
                     plate.timer = nil
-                    self:setTargetsActive(plate.targets, false)
+                    -- restore door or spikes appropriately
+                    do
+                        local targetID = plate.targets
+                        local hasSpike = false
+                        for _, sp in ipairs(self.spikes) do if sp.id == targetID then hasSpike = true break end end
+                        if hasSpike then
+                            -- restore spikes (respect alwaysOn)
+                            for _, sp in ipairs(self.spikes) do
+                                if sp.id == targetID then
+                                    sp.isActive = true
+                                    sp.frame = sp.alwaysOn and 3 or 1
+                                    sp.timer = 0
+                                    sp.direction = 1
+                                end
+                            end
+                        else
+                            self:setTargetsActive(targetID, false)
+                        end
+                    end
                 end
             end
             local plateTID = plate.isPressed and self.tileIDs.pressedPressurePlate or self.tileIDs.pressurePlate
@@ -262,7 +375,7 @@ local function createLevel(tiledMapData, nextLevelKey)
             plate.wasOnPlate = onPlate
         end
 
-        if self.isLevel3 then
+        if self.levelNumber == 3 then
             local button1_pressed, button2_pressed = false, false
             for _, button in ipairs(self.buttons) do
                 local onButton = (player.gridX == button.x and player.gridY == button.y) or (ghost.active and ghost.gridX == button.x and ghost.gridY == button.y)
@@ -280,7 +393,23 @@ local function createLevel(tiledMapData, nextLevelKey)
                     local onButton = (player.gridX == button.x and player.gridY == button.y) or (ghost.active and ghost.gridX == button.x and ghost.gridY == button.y)
                     if onButton then
                         button.wasPressed = true
-                        self:setTargetsActive(button.targets, true)
+                        -- toggle door or spikes appropriately
+                        do
+                            local targetID = button.targets
+                            local hasSpike = false
+                            for _, sp in ipairs(self.spikes) do if sp.id == targetID then hasSpike = true break end end
+                            if hasSpike then
+                                -- permanently disable spikes (set to frame 1)
+                                for _, sp in ipairs(self.spikes) do
+                                    if sp.id == targetID then
+                                        sp.isActive = false
+                                        sp.frame = 1
+                                    end
+                                end
+                            else
+                                self:setTargetsActive(targetID, true)
+                            end
+                        end
                         self.tileLayers[button.layerIndex][button.y][button.x] = self.tileIDs.pressedButton
                     end
                 end
@@ -288,16 +417,31 @@ local function createLevel(tiledMapData, nextLevelKey)
         end
 
         for _, spike in ipairs(self.spikes) do
-            if self.isLevel3 and spike.id == self.puzzleTargetID and spike.isActive then
+            if not spike.isActive then
+                -- disabled spikes stay retracted
+                spike.frame = 1
+            elseif spike.alwaysOn then
+                -- always-on spikes animate up to frame 3 and stay
                 if spike.frame < 3 then
                     spike.timer = spike.timer + dt
                     local interval = (spike.frame == 1) and 0.75 or 0.25
                     if spike.timer >= interval then
                         spike.timer = spike.timer - interval
-                        spike.frame = spike.frame + 1 
+                        spike.frame = spike.frame + 1
                     end
                 end
+            elseif self.levelNumber == 3 and spike.id == self.puzzleTargetID and spike.isActive then
+                -- level3 puzzle spike
+                if spike.frame < 3 then
+                    spike.timer = spike.timer + dt
+                    local interval = (spike.frame == 1) and 0.75 or 0.25
+                    if spike.timer >= interval then
+                        spike.timer = spike.timer - interval
+                        spike.frame = spike.frame + 1
+                      end
+                end
             elseif spike.isActive then
+                -- normal spike animation
                 spike.timer = spike.timer + dt
                 local interval = (spike.frame == 1) and 0.75 or 0.25
                 if spike.timer >= interval then
@@ -306,7 +450,7 @@ local function createLevel(tiledMapData, nextLevelKey)
                     spike.frame = spike.frame + spike.direction
                 end
             else
-                spike.frame = 1 
+                spike.frame = 1
             end
 
             if spike.frame > 1 then 
@@ -327,6 +471,9 @@ local function createLevel(tiledMapData, nextLevelKey)
 
         if not player.isDead and not player.moving and self.levelUpPos then
             if player.gridX == self.levelUpPos.x and player.gridY == self.levelUpPos.y then
+                if self.levelNumber == 3 or self.levelNumber == 4 or self.levelNumber == 5 or self.levelNumber == 6 then
+                    return self.nextLevelKey
+                end
                 local mainDoorIsOpen = false
                 for _, door in ipairs(self.doors) do if door.isOpen then mainDoorIsOpen = true break end end
                 if (self.key and player.hasKey) or mainDoorIsOpen then return self.nextLevelKey end
@@ -394,6 +541,7 @@ local function createLevel(tiledMapData, nextLevelKey)
             player:draw()
         end
         if self.key then self.key:draw() end
+        for _, e in ipairs(self.enemies) do e:draw() end
         love.graphics.pop()
 
         if self.hasShownHint and self.hintAlpha > 0 and #self.hints > 0 then
@@ -411,8 +559,12 @@ local function createLevel(tiledMapData, nextLevelKey)
 end
 
 return {
-    level1 = createLevel(level1Data, 'level2'),
-    level2 = createLevel(level2Data, 'level3'),
-    level3 = createLevel(level3Data, 'level4'),
-    level4 = createLevel(level4Data, nil)
+    level1 = createLevel(level1Data, 'level2', 1),
+    level2 = createLevel(level2Data, 'level3', 2),
+    level3 = createLevel(level3Data, 'level4', 3),
+    level4 = createLevel(level4Data, 'level5', 4),
+    level5 = createLevel(level5Data, 'level6', 5),
+    level6 = createLevel(level6Data, 'level7', 6),
+    level7 = createLevel(level7Data, 'level8', 7),
+    level8 = createLevel(level8Data, nil, 8),
 }

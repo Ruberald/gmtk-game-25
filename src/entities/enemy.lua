@@ -5,7 +5,7 @@ local enemy = {
 
     tileSize = 16,
     moveTimer = 0,
-    moveDuration = 0.3,
+    moveDuration = 0.21,
     moving = false,
     active = false,
 
