@@ -266,7 +266,7 @@ return {
                 properties = { { name = "type", type = "string", value = "playerStart" } }
             },
             {
-                id = 2, name = "levelExit", x = 9 * 16, y = 9 * 16, width = 16, height = 16,
+                id = 2, name = "levelExit", x = 4 * 16, y = 10 * 16, width = 16, height = 16,
                 properties = { { name = "type", type = "string", value = "levelUp" } }
             },
             {

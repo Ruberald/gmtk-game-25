@@ -4,7 +4,7 @@ local Game = {}
 local levels = require 'src.scenes.levels'
 local settings = require 'src.settings'
 
-Game.currentLevel = levels.level1
+Game.currentLevel = levels.level4
 
 -- Music sources
 local track1, track2
@@ -26,11 +26,11 @@ function Game:load(resetHistory)
     if not track1 then
         track1 = love.audio.newSource("assets/levels1.mp3", "stream")
         track2 = love.audio.newSource("assets/levels2.mp3", "stream")
-        track1:setLooping(false)
-        track2:setLooping(false)
-        track1:setVolume(settings.musicVolume)
-        track2:setVolume(settings.musicVolume)
-        track1:play()
+        -- track1:setLooping(false)
+        -- track2:setLooping(false)
+        -- track1:setVolume(settings.musicVolume)
+        -- track2:setVolume(settings.musicVolume)
+        -- track1:play()
         currentTrack = 1
     end
 end
@@ -39,11 +39,11 @@ function Game:update(dt)
     -- Music switching logic
     if currentTrack == 1 and not track1:isPlaying() then
         track2:setVolume(settings.musicVolume)
-        track2:play()
+        -- track2:play()
         currentTrack = 2
     elseif currentTrack == 2 and not track2:isPlaying() then
         track1:setVolume(settings.musicVolume)
-        track1:play()
+        -- track1:play()
         currentTrack = 1
     end
 
