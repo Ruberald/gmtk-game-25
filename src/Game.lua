@@ -3,7 +3,7 @@ local Game = {}
 
 local levels = require 'src.scenes.levels'
 
-Game.currentLevel = levels.level2
+Game.currentLevel = levels.level1
 
 function Game:load(resetHistory)
     if resetHistory then
