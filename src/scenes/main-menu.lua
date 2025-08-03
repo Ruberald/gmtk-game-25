@@ -1,50 +1,56 @@
 local mainMenu = {}
-
 local button = require 'src.ui.components.button'
 local label  = require 'src.ui.components.label'
+local Game   = require 'src.Game'
+local settingsMenu   = require 'src.scenes.settingsMenu'
+local credits   = require 'src.scenes.credits'
+local settings = require 'src.settings'
+local splash = require 'src.scenes.splash'
 
--- `previous` - the previously active scene, or `false` if there was no previously active scene
--- `...` - additional arguments passed to `manager.enter` or `manager.push`
-function mainMenu:enter(previous, ...)
-  -- set up the level
-  love.graphics.setBackgroundColor(colors.rgbForGraphics(colors.Slate800))
+local music = nil
 
-  local clicks = 0
+function mainMenu:enter()
+  if not music then
+    music = love.audio.newSource("assets/main_menu.mp3", "stream")
+    music:setLooping(true)
+    music:setVolume(settings.musicVolume)
+  end
+  love.audio.play(music)
+
+  local hintFont = love.graphics.newFont("assets/font.ttf", 20)
+
   menu = badr { column = true, gap = 10 }
-      + label({ text = "Main Menu", width = 200 })
-      + button {
-        text = 'New game',
+    + label({ text = "One More Loop", width = 200 })
+    + button {
+        text = "Start Game",
         width = 200,
-        onHover = function()
-          print 'mouse entered'
-          return function()
-            print('mouse exited')
-          end
+        font = hintFont,
+        onClick = function()
+            roomy:enter(Game)
         end
       }
-      + button { text = 'Settings', width = 200, onClick = function()
-        local success = love.window.showMessageBox("Settings", "Not implemented", "info")
-        if success then
-          print("Settings message box closed")
-        end
-      end }
-      + button { text = 'Credits', width = 200, onClick = function()
-        roomy:push(scenes.credits)
-      end }
-      + button { text = 'Quit', width = 200, onClick = function() love.event.quit() end }
-      + button {
-        text = 'Clicked: 0',
+    + button {
+        text = "Settings",
         width = 200,
-        onClick = function(self)
-          clicks = clicks + 1
-          self.text = 'Clicked: ' .. clicks
+        font = hintFont,
+        onClick = function()
+          roomy:push(settingsMenu)
         end
       }
-      + button {
-        text = 'Click to remove',
-        onClick = function(self)
-          self.parent = self.parent - self
-          love.mouse.setCursor()
+    + button {
+        text = "Credits",
+        width = 200,
+        font = hintFont,
+        onClick = function()
+          roomy:push(credits)
+        end
+      }
+    + button {
+        text = "Quit",
+        width = 200,
+        font = hintFont,
+        onClick = function()
+          love.event.quit()
         end
       }
 
@@ -55,35 +61,22 @@ function mainMenu:enter(previous, ...)
 end
 
 function mainMenu:update(dt)
-  -- update entities
-  menu:update()
-end
-
-function mainMenu:keypressed(key)
-  -- someone pressed a key
-end
-
--- `next` - the scene that will be active next
--- `...` - additional arguments passed to `manager.enter` or `manager.pop`
-function mainMenu:leave(next, ...)
-  -- destroy entities and cleanup resources
-end
-
--- `next` - the scene that was pushed on top of this scene
--- `...` - additional arguments passed to `manager.push`
-function mainMenu:pause(next, ...)
-  -- destroy entities and cleanup resources
-end
-
--- `previous` - the scene that was popped
--- `...` - additional arguments passed to `manager.pop`
-function mainMenu:resume(previous, ...)
-  -- Called when a scene is popped and this scene becomes active again.
+  menu:update(dt)
 end
 
 function mainMenu:draw()
-  -- draw the level
-  menu:draw()
+    splash:draw()
+    -- Draw translucent background (black with 50% opacity)
+    love.graphics.setColor(0, 0, 0, 0.5)
+    love.graphics.rectangle("fill", 0, 0, love.graphics.getWidth(), love.graphics.getHeight())
+
+    -- Reset color and draw menu UI
+    love.graphics.setColor(1, 1, 1)
+    menu:draw()
+end
+
+function mainMenu:leave()
+  if music then music:stop() end
 end
 
 return mainMenu

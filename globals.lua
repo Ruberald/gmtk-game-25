@@ -55,10 +55,16 @@ lume = require("lib.lume")
 -- @see https://github.com/deltadaedalus/vudu
 -- vudu = require("lib.vudu")
 
+HasPlayerDiedOnce = false
+HasGhostDiedOnce =  false
+HasShownDeathLore = false
+HasShownGhostLore = false
+
 scenes = {
   splash = require("src.scenes.splash"),
   credits = require("src.scenes.credits"),
   mainMenu = require("src.scenes.main-menu"),
+  pauseMenu = require("src.scenes.pause-menu"),
 }
 
 CONFIG = {
@@ -81,7 +87,13 @@ CONFIG = {
 
   window = {
     -- icon = 'assets/images/icon.png'
-    icon = nil
+    icon = nil,
+    width = 1280, 
+    height = 720, 
+    fullscreen = false, 
+    resizable = true,  
+    vsync = true,      
+    title = "OneMoreLoop"
   },
 
   debug = {
