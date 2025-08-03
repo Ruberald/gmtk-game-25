@@ -38,12 +38,10 @@ end
 function Game:update(dt)
     -- Music switching logic
     if currentTrack == 1 and not track1:isPlaying() then
-        track2:setVolume(settings.musicVolume)
-        -- track2:play()
+        track2:play()
         currentTrack = 2
     elseif currentTrack == 2 and not track2:isPlaying() then
-        track1:setVolume(settings.musicVolume)
-        -- track1:play()
+        track1:play()
         currentTrack = 1
     end
 
@@ -62,8 +60,10 @@ end
 function Game:pause(next, ...)
     -- Pause current track
     if currentTrack == 1 and track1 and track1:isPlaying() then
+        track1:setVolume(settings.musicVolume)
         track1:pause()
     elseif currentTrack == 2 and track2 and track2:isPlaying() then
+        track2:setVolume(settings.musicVolume)
         track2:pause()
     end
 end
@@ -71,8 +71,10 @@ end
 function Game:resume(previous, ...)
     -- Resume current track
     if currentTrack == 1 and track1 then
+        track1:setVolume(settings.musicVolume)
         track1:play()
     elseif currentTrack == 2 and track2 then
+        track2:setVolume(settings.musicVolume)
         track2:play()
     end
 end

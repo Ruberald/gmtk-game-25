@@ -8,7 +8,7 @@ local quads = {}
 local currentFrame = 1
 local frameTime = 1 / 12
 local elapsedTime = 0
-local frameCount = 8
+local frameCount = 9
 local frameWidth = 320
 local frameHeight = 160
 
@@ -48,6 +48,9 @@ function splash:resume(previous, ...)
 end
 
 function splash:update(dt)
+  -- Update current window dimensions in case it changed
+  screenWidth, screenHeight = love.graphics.getWidth(), love.graphics.getHeight()
+
   if isAnimating then
     elapsedTime = elapsedTime + dt
     if elapsedTime >= frameTime then
@@ -55,13 +58,11 @@ function splash:update(dt)
       currentFrame = currentFrame + 1
 
       if currentFrame > frameCount then
-        -- Animation finished
         roomy:push(scenes.mainMenu)
       end
     end
   end
 end
-
 function splash:keypressed()
   if not isAnimating then
     isAnimating = true

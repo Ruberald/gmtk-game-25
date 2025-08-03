@@ -104,6 +104,10 @@ function love.keypressed(key, scancode, isRepeat)
         local topScene = roomy._scenes[#roomy._scenes]
         if topScene == scenes.pauseMenu then
             roomy:pop()
+        elseif topScene == scenes.mainMenu then
+            roomy:enter(scenes.splash)
+        elseif topScene == scenes.splash then
+            love.event.quit()
         else
             roomy:push(scenes.pauseMenu)
         end
