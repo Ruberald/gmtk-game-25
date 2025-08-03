@@ -7,7 +7,7 @@ local pages = {
   Stranded.
 ]],
   [[
-  Alone on an abandoned facilty, 
+  Alone in an abandoned facilty, 
   hurtling past asteroids through space.
 ]],
   [[

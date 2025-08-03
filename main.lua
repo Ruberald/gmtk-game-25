@@ -74,27 +74,27 @@ function drawDebugStats(drawTime)
         memoryUnit = "MB"
     end
 
-    local info = {
-        "FPS: " .. ("%3d"):format(love.timer.getFPS()),
-        "DRAW: " .. ("%7.3fms"):format(drawTime * 1000),
-        "RAM: " .. string.format("%7.2f", ram) .. memoryUnit,
-        "VRAM: " .. string.format("%6.2f", vram) .. memoryUnit,
-        "Draw calls: " .. stats.drawcalls,
-        "Images: " .. stats.images,
-        "Canvases: " .. stats.canvases,
-        "\tSwitches: " .. stats.canvasswitches,
-        "Shader switches: " .. stats.shaderswitches,
-        "Fonts: " .. stats.fonts,
-    }
+    -- local info = {
+    --     "FPS: " .. ("%3d"):format(love.timer.getFPS()),
+    --     "DRAW: " .. ("%7.3fms"):format(drawTime * 1000),
+    --     "RAM: " .. string.format("%7.2f", ram) .. memoryUnit,
+    --     "VRAM: " .. string.format("%6.2f", vram) .. memoryUnit,
+    --     "Draw calls: " .. stats.drawcalls,
+    --     "Images: " .. stats.images,
+    --     "Canvases: " .. stats.canvases,
+    --     "\tSwitches: " .. stats.canvasswitches,
+    --     "Shader switches: " .. stats.shaderswitches,
+    --     "Fonts: " .. stats.fonts,
+    -- }
 
-    love.graphics.setFont(love.graphics.newFont(12))
-    for i, text in ipairs(info) do
-        local sx, sy = CONFIG.debug.stats.shadowOffset.x, CONFIG.debug.stats.shadowOffset.y
-        love.graphics.setColor(CONFIG.debug.stats.shadow)
-        love.graphics.print(text, x + sx, y + sy + (i - 1) * dy)
-        love.graphics.setColor(CONFIG.debug.stats.foreground)
-        love.graphics.print(text, x, y + (i - 1) * dy)
-    end
+    -- love.graphics.setFont(love.graphics.newFont(12))
+    -- for i, text in ipairs(info) do
+    --     local sx, sy = CONFIG.debug.stats.shadowOffset.x, CONFIG.debug.stats.shadowOffset.y
+    --     love.graphics.setColor(CONFIG.debug.stats.shadow)
+    --     love.graphics.print(text, x + sx, y + sy + (i - 1) * dy)
+    --     love.graphics.setColor(CONFIG.debug.stats.foreground)
+    --     love.graphics.print(text, x, y + (i - 1) * dy)
+    -- end
 
     love.graphics.pop()
 end

@@ -164,6 +164,7 @@ function player:die(type)
     self.isDead = true
     self.deathType = type or 'normal'
     self.isReadyToRespawn = false
+    self.hasKey = false
 
     if self.deathType == 'normal' then
         self.currentAnimation = 'death'

@@ -5,7 +5,6 @@ local level4Data = require 'src.levels.level4'
 local level5Data = require 'src.levels.level5'
 local level6Data = require 'src.levels.level6'
 local level7Data = require 'src.levels.level7'
-local level8Data = require 'src.levels.level8'
 local player = require 'src.entities.player'
 local ghost = require 'src.entities.ghost'
 local enemy = require 'src.entities.enemy'
@@ -241,6 +240,7 @@ local function createLevel(tiledMapData, nextLevelKey, levelNumber)
         if self.lastRunActions then
             ghost:reset(self.playerStartX, self.playerStartY, self.tileSize, self.lastRunActions)
         end
+        if self.key then self.key:reset() end
         for _, plate in ipairs(self.plates) do
             plate.isPressed = false
             plate.timer = nil
@@ -270,6 +270,15 @@ local function createLevel(tiledMapData, nextLevelKey, levelNumber)
         if self.key then self.key:update(player) end
         for _, e in ipairs(self.enemies) do e:update(dt, player, ghost) end
 
+        -- ghost death on enemy collision
+        for _, e in ipairs(self.enemies) do
+            if ghost.active and e.gridX == ghost.gridX and e.gridY == ghost.gridY then
+                HasGhostDiedOnce = true
+                ghost:reset(self.playerStartX, self.playerStartY, self.tileSize, self.lastRunActions)
+                break
+            end
+        end
+        
         -- check for chasm spike tile collision
         for _, layer in ipairs(self.tileLayers) do
             local tid = layer[player.gridY][player.gridX]
@@ -565,6 +574,5 @@ return {
     level4 = createLevel(level4Data, 'level5', 4),
     level5 = createLevel(level5Data, 'level6', 5),
     level6 = createLevel(level6Data, 'level7', 6),
-    level7 = createLevel(level7Data, 'level8', 7),
-    level8 = createLevel(level8Data, nil, 8),
+    level7 = createLevel(level7Data, nil, 7),
 }
